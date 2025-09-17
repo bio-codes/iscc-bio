@@ -3,9 +3,22 @@ name = "iscc-bio"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
+    "bioio>=3.0.0",
+    "iscc-core>=1.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "bioio-czi>=2.4.0",
     "bioio-ome-tiff>=1.4.0",
     "bioio-ome-zarr>=2.3.0",
-    "iscc-core>=1.2.2",
+    "bioio-dv>=1.2.0",
+    "bioio-imageio>=1.3.0",
+    "bioio-lif>=1.4.1",
+    "bioio-nd2>=1.5.0",
+    "bioio-tifffile>=1.3.0",
+    "bioio-tiff-glob>=1.2.0",
+    "bioio-bioformats>=1.3.0",
 ]
