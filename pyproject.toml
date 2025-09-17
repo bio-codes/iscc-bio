@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "bioio>=3.0.0",
     "iscc-core>=1.2.2",
+    "matplotlib>=3.10.6",
 ]
 
 [dependency-groups]
