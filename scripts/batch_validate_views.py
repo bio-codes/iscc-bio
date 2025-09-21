@@ -11,12 +11,12 @@ def process_all_bioimages(directory: Path):
     """Process all bioimage files in the directory."""
 
     # Common bioimage extensions
-    extensions = ['.czi', '.nd2', '.tif', '.tiff', '.lif', '.oir', '.ims']
+    extensions = [".czi", ".nd2", ".tif", ".tiff", ".lif", ".oir", ".ims"]
 
     # Find all bioimage files
     bioimage_files = []
     for ext in extensions:
-        bioimage_files.extend(directory.glob(f'*{ext}'))
+        bioimage_files.extend(directory.glob(f"*{ext}"))
 
     print(f"Found {len(bioimage_files)} bioimage files in {directory}")
     print("=" * 60)
@@ -36,9 +36,11 @@ def process_all_bioimages(directory: Path):
             sys.executable,
             "scripts/validate_bioimage_views.py",
             str(filepath),
-            "--strategy", "comprehensive",
-            "--save", str(output_file),
-            "--no-display"  # Don't show interactive plots
+            "--strategy",
+            "comprehensive",
+            "--save",
+            str(output_file),
+            "--no-display",  # Don't show interactive plots
         ]
 
         try:
@@ -46,23 +48,25 @@ def process_all_bioimages(directory: Path):
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=120  # 2 minute timeout per file
+                timeout=120,  # 2 minute timeout per file
             )
 
             if result.returncode == 0:
                 print(f"✓ Success! Views saved to: {output_file.name}")
                 # Print extraction summary if available
                 if "EXTRACTION SUMMARY" in result.stdout:
-                    lines = result.stdout.split('\n')
+                    lines = result.stdout.split("\n")
                     for j, line in enumerate(lines):
                         if "EXTRACTION SUMMARY" in line:
                             # Print summary section
-                            for k in range(j-1, min(j+10, len(lines))):
+                            for k in range(j - 1, min(j + 10, len(lines))):
                                 if lines[k].strip():
                                     print(f"  {lines[k]}")
                 success_count += 1
             else:
-                print(f"✗ Failed: {result.stderr[:200] if result.stderr else 'Unknown error'}")
+                print(
+                    f"✗ Failed: {result.stderr[:200] if result.stderr else 'Unknown error'}"
+                )
                 failed_files.append(filepath.name)
 
         except subprocess.TimeoutExpired:

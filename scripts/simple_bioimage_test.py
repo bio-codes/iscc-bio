@@ -12,9 +12,9 @@ from bioio import BioImage
 
 def test_simple_access(file_path: str):
     """Simple test of bioimage data access."""
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"Testing: {Path(file_path).name}")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
 
     try:
         bio_img = BioImage(file_path)
@@ -45,7 +45,9 @@ def test_simple_access(file_path: str):
                     slice_2d = data  # Already 2D
 
                 print(f"  2D slice shape: {slice_2d.shape}")
-                print(f"  2D slice stats: min={slice_2d.min()}, max={slice_2d.max()}, mean={slice_2d.mean():.2f}")
+                print(
+                    f"  2D slice stats: min={slice_2d.min()}, max={slice_2d.max()}, mean={slice_2d.mean():.2f}"
+                )
 
         except Exception as e:
             print(f"  Error with direct data access: {e}")
@@ -56,7 +58,9 @@ def test_simple_access(file_path: str):
             # Try to get just YX dimensions
             img_yx = bio_img.get_image_data("YX")
             print(f"  YX data shape: {img_yx.shape}")
-            print(f"  YX stats: min={img_yx.min()}, max={img_yx.max()}, mean={img_yx.mean():.2f}")
+            print(
+                f"  YX stats: min={img_yx.min()}, max={img_yx.max()}, mean={img_yx.mean():.2f}"
+            )
 
         except Exception as e:
             print(f"  Error with get_image_data YX: {e}")
@@ -74,9 +78,9 @@ def test_simple_access(file_path: str):
         try:
             data_type = type(bio_img.data)
             print(f"\nData type details: {data_type}")
-            if hasattr(bio_img.data, 'compute'):
+            if hasattr(bio_img.data, "compute"):
                 print("  Data is a dask array - supports lazy loading")
-            if hasattr(bio_img.data, 'chunks'):
+            if hasattr(bio_img.data, "chunks"):
                 print(f"  Chunks: {bio_img.data.chunks}")
 
         except Exception as e:

@@ -10,7 +10,7 @@ For documentation of ISCC see https://deepwiki.com/iscc/iscc-core
 ## ISCC Mixed-Code Approach
 
 ISO 24138:2024 supports ISCC Image-Codes which are perceptual hashes of 2D images. To support bioimages, we 
-need a format agnostic and deterministic approach to segment any bioimage into individual 2D images.
-We could than create individual Image-Codes per 2D image and create a global descriptor of the collection of 
-images using the ISCC Mixed-Code.
+need a format agnostic and deterministic approach to segment any bioimage into a representative subset of 
+2D images. We can then create individual Image-Codes per 2D image and create a global descriptor of the 
+collection of images using the ISCC Mixed-Code.
 

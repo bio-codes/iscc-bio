@@ -56,21 +56,27 @@ def extract_mip_views(bio_img: BioImage) -> List[Dict[str, Any]]:
             # Create MIP - collapse Z dimension by taking maximum
             mip_2d = np.max(z_stack, axis=0)  # Results in YX
 
-            channel_name = bio_img.channel_names[c] if c < len(bio_img.channel_names) else f"Ch{c}"
+            channel_name = (
+                bio_img.channel_names[c] if c < len(bio_img.channel_names) else f"Ch{c}"
+            )
 
-            views.append({
-                'data': mip_2d,
-                'type': 'MIP',
-                'title': f'MIP - T{t} - {channel_name}',
-                'channel': c,
-                'channel_name': channel_name,
-                'timepoint': t
-            })
+            views.append(
+                {
+                    "data": mip_2d,
+                    "type": "MIP",
+                    "title": f"MIP - T{t} - {channel_name}",
+                    "channel": c,
+                    "channel_name": channel_name,
+                    "timepoint": t,
+                }
+            )
 
     return views
 
 
-def extract_composite_views(bio_img: BioImage, use_mip: bool = True) -> List[Dict[str, Any]]:
+def extract_composite_views(
+    bio_img: BioImage, use_mip: bool = True
+) -> List[Dict[str, Any]]:
     """Create composite images from multiple channels."""
     views = []
 
@@ -95,16 +101,20 @@ def extract_composite_views(bio_img: BioImage, use_mip: bool = True) -> List[Dic
 
             composite = np.stack(channels, axis=-1)
 
-            views.append({
-                'data': composite,
-                'type': 'Composite',
-                'title': f'Composite MIP - T{t}',
-                'timepoint': t,
-                'is_rgb': True
-            })
+            views.append(
+                {
+                    "data": composite,
+                    "type": "Composite",
+                    "title": f"Composite MIP - T{t}",
+                    "timepoint": t,
+                    "is_rgb": True,
+                }
+            )
         else:
             # Use single Z-plane for composite
-            for z in range(min(3, bio_img.dims.Z)):  # Limit to first 3 Z-planes for display
+            for z in range(
+                min(3, bio_img.dims.Z)
+            ):  # Limit to first 3 Z-planes for display
                 channels = []
                 for c in range(min(3, bio_img.dims.C)):
                     img = bio_img.get_image_data("YX", T=t, C=c, Z=z)
@@ -116,14 +126,16 @@ def extract_composite_views(bio_img: BioImage, use_mip: bool = True) -> List[Dic
 
                 composite = np.stack(channels, axis=-1)
 
-                views.append({
-                    'data': composite,
-                    'type': 'Composite',
-                    'title': f'Composite - T{t} Z{z}',
-                    'z_plane': z,
-                    'timepoint': t,
-                    'is_rgb': True
-                })
+                views.append(
+                    {
+                        "data": composite,
+                        "type": "Composite",
+                        "title": f"Composite - T{t} Z{z}",
+                        "z_plane": z,
+                        "timepoint": t,
+                        "is_rgb": True,
+                    }
+                )
 
     return views
 
@@ -151,22 +163,28 @@ def extract_best_focus_views(bio_img: BioImage) -> List[Dict[str, Any]]:
                 sharpness_scores.append(score)
 
             best_z = np.argmax(sharpness_scores)
-            channel_name = bio_img.channel_names[c] if c < len(bio_img.channel_names) else f"Ch{c}"
+            channel_name = (
+                bio_img.channel_names[c] if c < len(bio_img.channel_names) else f"Ch{c}"
+            )
 
-            views.append({
-                'data': z_stack[best_z],
-                'type': 'Best Focus',
-                'title': f'Best Focus Z{best_z} - T{t} - {channel_name}',
-                'z_index': best_z,
-                'channel': c,
-                'channel_name': channel_name,
-                'timepoint': t
-            })
+            views.append(
+                {
+                    "data": z_stack[best_z],
+                    "type": "Best Focus",
+                    "title": f"Best Focus Z{best_z} - T{t} - {channel_name}",
+                    "z_index": best_z,
+                    "channel": c,
+                    "channel_name": channel_name,
+                    "timepoint": t,
+                }
+            )
 
     return views
 
 
-def extract_sample_planes(bio_img: BioImage, max_samples: int = 6) -> List[Dict[str, Any]]:
+def extract_sample_planes(
+    bio_img: BioImage, max_samples: int = 6
+) -> List[Dict[str, Any]]:
     """Extract sample individual planes for inspection."""
     views = []
 
@@ -174,26 +192,38 @@ def extract_sample_planes(bio_img: BioImage, max_samples: int = 6) -> List[Dict[
 
     # Calculate sampling interval
     z_samples = min(max_samples, bio_img.dims.Z)
-    z_indices = np.linspace(0, bio_img.dims.Z - 1, z_samples, dtype=int) if bio_img.dims.Z > 1 else [0]
+    z_indices = (
+        np.linspace(0, bio_img.dims.Z - 1, z_samples, dtype=int)
+        if bio_img.dims.Z > 1
+        else [0]
+    )
 
     for t in range(min(1, bio_img.dims.T)):  # Just first timepoint for samples
         for c in range(min(2, bio_img.dims.C)):  # Just first 2 channels for samples
             for z in z_indices[:3]:  # Max 3 Z samples per channel
                 img = bio_img.get_image_data("YX", T=t, C=c, Z=z)
-                channel_name = bio_img.channel_names[c] if c < len(bio_img.channel_names) else f"Ch{c}"
+                channel_name = (
+                    bio_img.channel_names[c]
+                    if c < len(bio_img.channel_names)
+                    else f"Ch{c}"
+                )
 
-                views.append({
-                    'data': img,
-                    'type': 'Single Plane',
-                    'title': f'Plane - T{t} {channel_name} Z{z}',
-                    'coords': {'T': t, 'C': c, 'Z': z},
-                    'channel_name': channel_name
-                })
+                views.append(
+                    {
+                        "data": img,
+                        "type": "Single Plane",
+                        "title": f"Plane - T{t} {channel_name} Z{z}",
+                        "coords": {"T": t, "C": c, "Z": z},
+                        "channel_name": channel_name,
+                    }
+                )
 
     return views
 
 
-def extract_biological_views(bio_img: BioImage, strategy: str = 'comprehensive') -> List[Dict[str, Any]]:
+def extract_biological_views(
+    bio_img: BioImage, strategy: str = "comprehensive"
+) -> List[Dict[str, Any]]:
     """
     Extract biologically meaningful 2D views from a bioimage.
 
@@ -206,28 +236,32 @@ def extract_biological_views(bio_img: BioImage, strategy: str = 'comprehensive')
     views = []
 
     print(f"\nExtracting {strategy} views...")
-    print(f"  Image dimensions: T={bio_img.dims.T}, C={bio_img.dims.C}, "
-          f"Z={bio_img.dims.Z}, Y={bio_img.dims.Y}, X={bio_img.dims.X}")
+    print(
+        f"  Image dimensions: T={bio_img.dims.T}, C={bio_img.dims.C}, "
+        f"Z={bio_img.dims.Z}, Y={bio_img.dims.Y}, X={bio_img.dims.X}"
+    )
 
-    if strategy in ['comprehensive', 'mip_only']:
+    if strategy in ["comprehensive", "mip_only"]:
         views.extend(extract_mip_views(bio_img))
 
-    if strategy in ['comprehensive', 'composite_only']:
+    if strategy in ["comprehensive", "composite_only"]:
         views.extend(extract_composite_views(bio_img))
 
-    if strategy == 'comprehensive' and bio_img.dims.Z > 1:
+    if strategy == "comprehensive" and bio_img.dims.Z > 1:
         views.extend(extract_best_focus_views(bio_img))
 
-    if strategy in ['comprehensive', 'samples']:
+    if strategy in ["comprehensive", "samples"]:
         views.extend(extract_sample_planes(bio_img))
 
     # Sort for deterministic ordering
-    views.sort(key=lambda v: (
-        v['type'],
-        v.get('timepoint', 0),
-        v.get('channel', 0),
-        v.get('z_plane', v.get('z_index', 0))
-    ))
+    views.sort(
+        key=lambda v: (
+            v["type"],
+            v.get("timepoint", 0),
+            v.get("channel", 0),
+            v.get("z_plane", v.get("z_index", 0)),
+        )
+    )
 
     return views
 
@@ -241,7 +275,7 @@ def display_views(views: List[Dict[str, Any]], save_path: Path = None):
     # Group views by type
     view_types = {}
     for view in views:
-        view_type = view['type']
+        view_type = view["type"]
         if view_type not in view_types:
             view_types[view_type] = []
         view_types[view_type].append(view)
@@ -252,49 +286,61 @@ def display_views(views: List[Dict[str, Any]], save_path: Path = None):
     rows = (total_views + cols - 1) // cols
 
     fig = plt.figure(figsize=(cols * 4, rows * 4))
-    fig.suptitle(f'Bioimage View Extraction ({total_views} views)', fontsize=16, fontweight='bold')
+    fig.suptitle(
+        f"Bioimage View Extraction ({total_views} views)",
+        fontsize=16,
+        fontweight="bold",
+    )
 
     # Plot each view
     for idx, view in enumerate(views):
         ax = fig.add_subplot(rows, cols, idx + 1)
 
-        img_data = view['data']
+        img_data = view["data"]
 
         # Handle RGB vs grayscale
-        if view.get('is_rgb', False) or (img_data.ndim == 3 and img_data.shape[2] == 3):
+        if view.get("is_rgb", False) or (img_data.ndim == 3 and img_data.shape[2] == 3):
             ax.imshow(img_data)
         else:
             # Grayscale
             img_display = normalize_for_display(img_data)
-            ax.imshow(img_display, cmap='gray')
+            ax.imshow(img_display, cmap="gray")
 
-        ax.set_title(view['title'], fontsize=10, fontweight='bold')
-        ax.axis('off')
+        ax.set_title(view["title"], fontsize=10, fontweight="bold")
+        ax.axis("off")
 
         # Add info text
         info = f"Shape: {img_data.shape}"
-        if 'z_index' in view:
+        if "z_index" in view:
             info += f"\nZ: {view['z_index']}"
-        ax.text(0.02, 0.02, info, transform=ax.transAxes,
-                fontsize=8, color='yellow', backgroundcolor='black', alpha=0.7)
+        ax.text(
+            0.02,
+            0.02,
+            info,
+            transform=ax.transAxes,
+            fontsize=8,
+            color="yellow",
+            backgroundcolor="black",
+            alpha=0.7,
+        )
 
     plt.tight_layout()
 
     if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"\nViews saved to: {save_path}")
 
     plt.show()
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"EXTRACTION SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     for view_type, type_views in view_types.items():
         print(f"{view_type:15} : {len(type_views)} views")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"{'Total':15} : {total_views} views")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     print(f"\nThese {total_views} views would each generate an ISCC Image-Code,")
     print(f"which would be combined into a single Mixed-Code for the bioimage.")
@@ -309,34 +355,30 @@ Examples:
   python validate_bioimage_views.py E:/biocodes/bioimages/xyc_tiles.czi
   python validate_bioimage_views.py E:/biocodes/bioimages/40xsiliconpollen.nd2 --strategy mip_only
   python validate_bioimage_views.py bioimage.tif --save output.png
-        """
+        """,
     )
 
+    parser.add_argument("filepath", type=str, help="Path to the bioimage file")
+
     parser.add_argument(
-        'filepath',
+        "--strategy",
         type=str,
-        help='Path to the bioimage file'
+        choices=["comprehensive", "mip_only", "composite_only", "samples"],
+        default="comprehensive",
+        help="View extraction strategy (default: comprehensive)",
     )
 
     parser.add_argument(
-        '--strategy',
-        type=str,
-        choices=['comprehensive', 'mip_only', 'composite_only', 'samples'],
-        default='comprehensive',
-        help='View extraction strategy (default: comprehensive)'
-    )
-
-    parser.add_argument(
-        '--save',
+        "--save",
         type=str,
         default=None,
-        help='Save visualization to file (e.g., output.png)'
+        help="Save visualization to file (e.g., output.png)",
     )
 
     parser.add_argument(
-        '--no-display',
-        action='store_true',
-        help='Do not display the plot (useful for headless environments)'
+        "--no-display",
+        action="store_true",
+        help="Do not display the plot (useful for headless environments)",
     )
 
     args = parser.parse_args()
@@ -365,9 +407,11 @@ Examples:
             print(f"  Channels: {', '.join(bio_img.channel_names)}")
 
         if bio_img.physical_pixel_sizes.Z or bio_img.physical_pixel_sizes.Y:
-            print(f"  Pixel sizes: Z={bio_img.physical_pixel_sizes.Z}μm, "
-                  f"Y={bio_img.physical_pixel_sizes.Y}μm, "
-                  f"X={bio_img.physical_pixel_sizes.X}μm")
+            print(
+                f"  Pixel sizes: Z={bio_img.physical_pixel_sizes.Z}μm, "
+                f"Y={bio_img.physical_pixel_sizes.Y}μm, "
+                f"X={bio_img.physical_pixel_sizes.X}μm"
+            )
 
         # Extract views
         views = extract_biological_views(bio_img, strategy=args.strategy)
@@ -387,6 +431,7 @@ Examples:
     except Exception as e:
         print(f"\nError processing bioimage: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
