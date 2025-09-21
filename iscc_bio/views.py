@@ -324,9 +324,10 @@ def extract_views(
                 # Compute MIP
                 mip = np.max(z_stack, axis=0)
 
-                # Check quality
+                # Check quality using entropy
                 quality = calculate_entropy(mip)
-                if quality >= min_quality_score:
+                # Use a more reasonable threshold for entropy (typically 2-8 for meaningful images)
+                if quality >= max(min_quality_score, 2.0):
                     views.append(
                         ViewInfo(
                             data=mip,
@@ -374,16 +375,22 @@ def extract_views(
                         z=best_z, c=c_idx, t=t_idx, resolution_level=0
                     )
 
-                    views.append(
-                        ViewInfo(
-                            data=plane,
-                            view_type="best_focus",
-                            timepoint=t_idx,
-                            z_plane=best_z,
-                            channels=[c_idx],
-                            metadata={"focus_score": best_score},
+                    # Double-check entropy to ensure it has content
+                    entropy = calculate_entropy(plane)
+                    if entropy >= max(min_quality_score, 2.0):
+                        views.append(
+                            ViewInfo(
+                                data=plane,
+                                view_type="best_focus",
+                                timepoint=t_idx,
+                                z_plane=best_z,
+                                channels=[c_idx],
+                                metadata={
+                                    "focus_score": best_score,
+                                    "entropy_score": entropy,
+                                },
+                            )
                         )
-                    )
 
                 if len(views) >= max_views:
                     break
@@ -391,45 +398,66 @@ def extract_views(
             if len(views) >= max_views:
                 break
 
-    # Representative sampling strategy
+    # Representative sampling strategy - fast entropy-based selection with diversity
     if "representative" in strategies and len(views) < max_views:
-        logger.info("Extracting representative samples")
+        logger.info("Extracting representative samples with fast entropy selection")
 
-        # Calculate how many more views we need
         remaining = max_views - len(views)
 
-        # Sample across dimensions
-        if dims["Z"] > 1:
-            z_samples = np.linspace(
-                0, dims["Z"] - 1, min(3, dims["Z"], remaining), dtype=int
-            )
-        else:
-            z_samples = [0]
+        # Quick scan: sample fewer planes initially for speed
+        n_samples = min(20, dims["Z"])  # Cap at 20 for speed
+        z_samples = np.linspace(0, dims["Z"] - 1, n_samples, dtype=int)
 
-        for t_idx in t_indices[:1]:  # One timepoint
+        # Track best Z per channel to ensure diversity
+        best_per_channel = {}  # {channel: [(z, entropy), ...]}
+
+        for c_idx in range(min(dims["C"], 3)):  # Max 3 channels
+            channel_candidates = []
+
             for z_idx in z_samples:
-                for c_idx in range(min(remaining, dims["C"])):
-                    plane = accessor.get_plane(
-                        z=z_idx, c=c_idx, t=t_idx, resolution_level=-1
-                    )
+                # Quick entropy check on downsampled plane
+                plane = accessor.get_plane(z=z_idx, c=c_idx, t=0, resolution_level=-1)
 
-                    # Check if has meaningful content
-                    if np.count_nonzero(plane) / plane.size > 0.01:  # >1% non-zero
-                        views.append(
-                            ViewInfo(
-                                data=plane,
-                                view_type="representative",
-                                timepoint=t_idx,
-                                z_plane=z_idx,
-                                channels=[c_idx],
-                            )
-                        )
+                # Fast entropy approximation: just check variance as proxy
+                variance = np.var(plane)
+                if variance > 100:  # Quick threshold
+                    # Calculate real entropy only for promising planes
+                    entropy = calculate_entropy(plane)
+                    if entropy > 2.0:
+                        channel_candidates.append((z_idx, entropy))
 
-                    if len(views) >= max_views:
-                        break
+            if channel_candidates:
+                # Sort and keep diverse Z values (at least 10 Z-planes apart)
+                channel_candidates.sort(key=lambda x: x[1], reverse=True)
+                selected = []
+                for z, ent in channel_candidates:
+                    if not selected or all(abs(z - s[0]) > 10 for s in selected):
+                        selected.append((z, ent))
+                        if len(selected) >= max(2, remaining // max(1, dims["C"])):
+                            break
+                best_per_channel[c_idx] = selected
 
-                if len(views) >= max_views:
-                    break
+        # Collect final views from diverse selections
+        all_candidates = []
+        for c_idx, z_list in best_per_channel.items():
+            for z_idx, entropy in z_list:
+                all_candidates.append((entropy, z_idx, c_idx))
+
+        # Sort by entropy and add views
+        all_candidates.sort(reverse=True)
+
+        for entropy, z_idx, c_idx in all_candidates[:remaining]:
+            plane = accessor.get_plane(z=z_idx, c=c_idx, t=0, resolution_level=-1)
+            views.append(
+                ViewInfo(
+                    data=plane,
+                    view_type="representative",
+                    timepoint=0,
+                    z_plane=z_idx,
+                    channels=[c_idx],
+                    metadata={"entropy_score": entropy},
+                )
+            )
 
             if len(views) >= max_views:
                 break
