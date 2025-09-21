@@ -1,13 +1,9 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "iscc-bio"
 version = "0.1.0"
 description = "BioCodes - ISCC Processing for BioImaging Data"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "bioio>=3.0.0",
     "iscc-core>=1.2.2",
@@ -15,10 +11,24 @@ dependencies = [
     "pillow>=10.0.0",
     "numpy>=1.24.0",
     "click>=8.0.0",
+    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl ; sys_platform == 'darwin'",
+    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
+    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux'",
+    "omero-py>=5.21.1",
 ]
 
 [project.scripts]
 iscc-bio = "iscc_bio.cli:cli"
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["iscc_bio"]
+
+[tool.uv]
+package = true
 
 [dependency-groups]
 dev = [
