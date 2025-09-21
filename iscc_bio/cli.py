@@ -4,7 +4,8 @@ import click
 from pathlib import Path
 import sys
 import logging
-from iscc_bio.extract import extract_thumbnail, extract_scenes
+from iscc_bio.thumb import extract_thumbnail
+from iscc_bio.scene import extract_scenes
 
 
 # Configure logging
@@ -144,7 +145,9 @@ def scenes(input):
                 error_count += 1
 
         # Summary
-        click.echo(f"\nCompleted: {success_count} files processed, {total_scenes} scenes extracted, {error_count} failed")
+        click.echo(
+            f"\nCompleted: {success_count} files processed, {total_scenes} scenes extracted, {error_count} failed"
+        )
 
         if error_count > 0:
             sys.exit(1)
