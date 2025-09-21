@@ -4,7 +4,7 @@ import click
 from pathlib import Path
 import sys
 import logging
-from iscc_bio.extract import extract_thumbnail
+from iscc_bio.extract import extract_thumbnail, extract_scenes
 
 
 # Configure logging
@@ -71,6 +71,80 @@ def thumb(input):
 
         # Summary
         click.echo(f"\nCompleted: {success_count} successful, {error_count} failed")
+
+        if error_count > 0:
+            sys.exit(1)
+    else:
+        click.echo(f"Error: {input_path} is neither a file nor a directory", err=True)
+        sys.exit(1)
+
+
+@cli.command()
+@click.argument("input", type=click.Path(exists=True, path_type=Path))
+def scenes(input):
+    """
+    Extract thumbnails from all scenes in bioimage file or directory.
+
+    If INPUT is a file, creates thumbnails for all scenes in it.
+    If INPUT is a directory, processes all files and extracts all scenes (non-recursive).
+    """
+    input_path = Path(input)
+
+    if input_path.is_file():
+        # Process single file
+        try:
+            logger.info(f"Processing file: {input_path}")
+            thumbnail_paths = extract_scenes(input_path)
+
+            if thumbnail_paths:
+                click.echo(f"✓ Extracted {len(thumbnail_paths)} scene thumbnails:")
+                for thumb_path in thumbnail_paths:
+                    click.echo(f"  → {thumb_path.name}")
+            else:
+                click.echo(f"⚠ No scenes found in {input_path.name}")
+        except Exception as e:
+            click.echo(f"✗ Error processing {input_path}: {e}", err=True)
+            sys.exit(1)
+
+    elif input_path.is_dir():
+        # Process all files in directory (non-recursive)
+        files = [f for f in input_path.iterdir() if f.is_file()]
+
+        if not files:
+            click.echo(f"No files found in directory: {input_path}")
+            sys.exit(1)
+
+        logger.info(f"Processing {len(files)} files in directory: {input_path}")
+        total_scenes = 0
+        success_count = 0
+        error_count = 0
+
+        for file_path in files:
+            # Skip already generated thumbnails
+            if ".thumb.png" in file_path.name:
+                logger.debug(f"Skipping thumbnail file: {file_path.name}")
+                continue
+
+            try:
+                logger.info(f"Processing file: {file_path.name}")
+                thumbnail_paths = extract_scenes(file_path)
+
+                if thumbnail_paths:
+                    click.echo(f"✓ {file_path.name} -> {len(thumbnail_paths)} scenes")
+                    for thumb_path in thumbnail_paths:
+                        click.echo(f"  → {thumb_path.name}")
+                    total_scenes += len(thumbnail_paths)
+                    success_count += 1
+                else:
+                    click.echo(f"⚠ {file_path.name}: No scenes found")
+                    success_count += 1
+            except Exception as e:
+                logger.error(f"Failed to process {file_path.name}: {e}")
+                click.echo(f"✗ {file_path.name}: {e}", err=True)
+                error_count += 1
+
+        # Summary
+        click.echo(f"\nCompleted: {success_count} files processed, {total_scenes} scenes extracted, {error_count} failed")
 
         if error_count > 0:
             sys.exit(1)
