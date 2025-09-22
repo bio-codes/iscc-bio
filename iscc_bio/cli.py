@@ -158,7 +158,7 @@ def scenes(input):
 
 
 @cli.command()
-@click.argument("input", type=click.Path(exists=True, path_type=Path))
+@click.argument("input", type=click.Path(exists=True, path_type=Path), required=False)
 @click.option(
     "--strategies",
     "-s",
@@ -179,7 +179,16 @@ def scenes(input):
     type=click.Path(path_type=Path),
     help="Directory to save view thumbnails",
 )
-def views(input, strategies, max_views, output_dir):
+@click.option(
+    "--host",
+    help="OMERO server hostname (e.g., omero.server.com)",
+)
+@click.option(
+    "--iid",
+    type=int,
+    help="OMERO image ID to process",
+)
+def views(input, strategies, max_views, output_dir, host, iid):
     """
     Extract intelligent views from bioimage for perceptual hashing.
 
@@ -191,93 +200,176 @@ def views(input, strategies, max_views, output_dir):
 
     Works efficiently with both local files and OMERO remote access.
     """
-    input_path = Path(input)
-
-    if input_path.is_file():
+    # Check if this is OMERO mode or file mode
+    if host and iid:
+        # OMERO mode
         try:
-            logger.info(f"Extracting views from: {input_path}")
-            logger.info(f"Strategies: {list(strategies)}, Max views: {max_views}")
+            from omero.gateway import BlitzGateway
 
-            # Extract views
-            extracted_views = extract_views(
-                input_path, max_views=max_views, strategies=list(strategies)
-            )
+            # Connect to OMERO server with hardcoded credentials
+            logger.info(f"Connecting to OMERO server: {host} on port 4064")
+            conn = BlitzGateway("root", "omero", host=host, port=4064)
 
-            click.echo(f"✓ Extracted {len(extracted_views)} views:")
-            for i, view in enumerate(extracted_views):
-                meta = []
-                if view.timepoint is not None:
-                    meta.append(f"t={view.timepoint}")
-                if view.z_plane is not None:
-                    meta.append(f"z={view.z_plane}")
-                if view.channels:
-                    meta.append(f"c={view.channels}")
-                meta_str = ", ".join(meta) if meta else "default"
-                click.echo(f"  {i + 1}. {view.view_type} ({meta_str})")
+            if not conn.connect():
+                click.echo(f"✗ Failed to connect to OMERO server: {host}", err=True)
+                sys.exit(1)
 
-            # Save thumbnails if output directory specified
-            if output_dir:
-                output_dir = Path(output_dir)
-                thumbnail_paths = views_to_thumbnails(
-                    extracted_views, output_dir=output_dir
-                )
-                click.echo(
-                    f"\n✓ Saved {len(thumbnail_paths)} thumbnails to {output_dir}"
-                )
+            logger.info(f"Connected. Loading image ID: {iid}")
+            image = conn.getObject("Image", iid)
 
-        except Exception as e:
-            click.echo(f"✗ Error processing {input_path}: {e}", err=True)
-            sys.exit(1)
-
-    elif input_path.is_dir():
-        # Process all files in directory
-        files = [f for f in input_path.iterdir() if f.is_file()]
-
-        if not files:
-            click.echo(f"No files found in directory: {input_path}")
-            sys.exit(1)
-
-        logger.info(f"Processing {len(files)} files in directory: {input_path}")
-        total_views = 0
-        success_count = 0
-        error_count = 0
-
-        for file_path in files:
-            # Skip thumbnails and non-bioimage files
-            if ".thumb.png" in file_path.name or file_path.suffix == ".png":
-                continue
+            if not image:
+                click.echo(f"✗ Image with ID {iid} not found on server", err=True)
+                conn.close()
+                sys.exit(1)
 
             try:
-                logger.info(f"Processing file: {file_path.name}")
+                click.echo(f"✓ Connected to OMERO: {image.getName()} (ID: {iid})")
+                logger.info(f"Extracting views from OMERO image: {image.getName()}")
+                logger.info(f"Strategies: {list(strategies)}, Max views: {max_views}")
+
+                # Extract views from OMERO image
                 extracted_views = extract_views(
-                    file_path, max_views=max_views, strategies=list(strategies)
+                    image, max_views=max_views, strategies=list(strategies)
                 )
 
-                click.echo(f"✓ {file_path.name} -> {len(extracted_views)} views")
-                total_views += len(extracted_views)
-                success_count += 1
+                click.echo(f"✓ Extracted {len(extracted_views)} views:")
+                for i, view in enumerate(extracted_views):
+                    meta = []
+                    if view.timepoint is not None:
+                        meta.append(f"t={view.timepoint}")
+                    if view.z_plane is not None:
+                        meta.append(f"z={view.z_plane}")
+                    if view.channels:
+                        meta.append(f"c={view.channels}")
+                    meta_str = ", ".join(meta) if meta else "default"
+                    click.echo(f"  {i + 1}. {view.view_type} ({meta_str})")
 
                 # Save thumbnails if output directory specified
                 if output_dir:
-                    file_output_dir = Path(output_dir) / file_path.stem
+                    output_dir = Path(output_dir)
                     thumbnail_paths = views_to_thumbnails(
-                        extracted_views, output_dir=file_output_dir
+                        extracted_views, output_dir=output_dir
+                    )
+                    click.echo(
+                        f"\n✓ Saved {len(thumbnail_paths)} thumbnails to {output_dir}"
+                    )
+
+            finally:
+                conn.close()
+                logger.info("Closed OMERO connection")
+
+        except ImportError:
+            click.echo(
+                "✗ OMERO Python library (omero-py) is not installed. "
+                "Install it with: pip install omero-py",
+                err=True,
+            )
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"✗ Error processing OMERO image: {e}", err=True)
+            if "conn" in locals() and conn.isConnected():
+                conn.close()
+            sys.exit(1)
+
+    elif input:
+        # File mode
+        input_path = Path(input)
+
+        if input_path.is_file():
+            try:
+                logger.info(f"Extracting views from: {input_path}")
+                logger.info(f"Strategies: {list(strategies)}, Max views: {max_views}")
+
+                # Extract views
+                extracted_views = extract_views(
+                    input_path, max_views=max_views, strategies=list(strategies)
+                )
+
+                click.echo(f"✓ Extracted {len(extracted_views)} views:")
+                for i, view in enumerate(extracted_views):
+                    meta = []
+                    if view.timepoint is not None:
+                        meta.append(f"t={view.timepoint}")
+                    if view.z_plane is not None:
+                        meta.append(f"z={view.z_plane}")
+                    if view.channels:
+                        meta.append(f"c={view.channels}")
+                    meta_str = ", ".join(meta) if meta else "default"
+                    click.echo(f"  {i + 1}. {view.view_type} ({meta_str})")
+
+                # Save thumbnails if output directory specified
+                if output_dir:
+                    output_dir = Path(output_dir)
+                    thumbnail_paths = views_to_thumbnails(
+                        extracted_views, output_dir=output_dir
+                    )
+                    click.echo(
+                        f"\n✓ Saved {len(thumbnail_paths)} thumbnails to {output_dir}"
                     )
 
             except Exception as e:
-                logger.error(f"Failed to process {file_path.name}: {e}")
-                click.echo(f"✗ {file_path.name}: {e}", err=True)
-                error_count += 1
+                click.echo(f"✗ Error processing {input_path}: {e}", err=True)
+                sys.exit(1)
 
-        # Summary
-        click.echo(
-            f"\nCompleted: {success_count} files processed, {total_views} views extracted, {error_count} failed"
-        )
+        elif input_path.is_dir():
+            # Process all files in directory
+            files = [f for f in input_path.iterdir() if f.is_file()]
 
-        if error_count > 0:
+            if not files:
+                click.echo(f"No files found in directory: {input_path}")
+                sys.exit(1)
+
+            logger.info(f"Processing {len(files)} files in directory: {input_path}")
+            total_views = 0
+            success_count = 0
+            error_count = 0
+
+            for file_path in files:
+                # Skip thumbnails and non-bioimage files
+                if ".thumb.png" in file_path.name or file_path.suffix == ".png":
+                    continue
+
+                try:
+                    logger.info(f"Processing file: {file_path.name}")
+                    extracted_views = extract_views(
+                        file_path, max_views=max_views, strategies=list(strategies)
+                    )
+
+                    click.echo(f"✓ {file_path.name} -> {len(extracted_views)} views")
+                    total_views += len(extracted_views)
+                    success_count += 1
+
+                    # Save thumbnails if output directory specified
+                    if output_dir:
+                        file_output_dir = Path(output_dir) / file_path.stem
+                        thumbnail_paths = views_to_thumbnails(
+                            extracted_views, output_dir=file_output_dir
+                        )
+
+                except Exception as e:
+                    logger.error(f"Failed to process {file_path.name}: {e}")
+                    click.echo(f"✗ {file_path.name}: {e}", err=True)
+                    error_count += 1
+
+            # Summary
+            click.echo(
+                f"\nCompleted: {success_count} files processed, {total_views} views extracted, {error_count} failed"
+            )
+
+            if error_count > 0:
+                sys.exit(1)
+        else:
+            click.echo(
+                f"Error: {input_path} is neither a file nor a directory", err=True
+            )
             sys.exit(1)
     else:
-        click.echo(f"Error: {input_path} is neither a file nor a directory", err=True)
+        # Neither OMERO nor file input provided
+        click.echo(
+            "Error: Please provide either a local file/directory path or "
+            "--host and --iid for OMERO access",
+            err=True,
+        )
         sys.exit(1)
 
 

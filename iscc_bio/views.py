@@ -87,12 +87,10 @@ class ImageAccessor:
     def resolution_levels(self) -> List[int]:
         """Get available resolution levels."""
         if self.is_omero:
-            # OMERO pyramids
-            pixels = self._omero_image.getPrimaryPixels()
-            levels = []
-            for i in range(pixels.getResolutionLevels()):
-                levels.append(i)
-            return levels if levels else [0]
+            # OMERO pyramids - simplified approach
+            # Most OMERO images don't have pyramids unless very large
+            # We'll just use resolution level 0 for now
+            return [0]
         else:
             # BioIO resolution levels
             if hasattr(self._bioimage, "resolution_levels"):
@@ -117,16 +115,7 @@ class ImageAccessor:
             # OMERO efficient plane access
             pixels = self._omero_image.getPrimaryPixels()
 
-            # Use lowest resolution for speed
-            if resolution_level == -1:
-                resolution_level = (
-                    pixels.getResolutionLevels() - 1
-                    if pixels.getResolutionLevels() > 1
-                    else 0
-                )
-
-            # Get plane at specified resolution
-            pixels.setResolutionLevel(resolution_level)
+            # Get plane directly (OMERO handles resolution internally)
             plane = pixels.getPlane(z, c, t)
             return np.array(plane)
         else:
