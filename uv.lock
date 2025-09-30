@@ -757,6 +757,9 @@ wheels = [
 http = [
     { name = "aiohttp" },
 ]
+s3 = [
+    { name = "s3fs" },
+]
 
 [[package]]
 name = "future"
@@ -858,6 +861,7 @@ dependencies = [
     { name = "iscc-core" },
     { name = "iscc-sum" },
     { name = "numpy" },
+    { name = "ome-zarr" },
     { name = "omero-py" },
     { name = "pillow" },
     { name = "zeroc-ice", version = "3.6.5", source = { url = "https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl" }, marker = "sys_platform == 'linux'" },
@@ -884,6 +888,7 @@ requires-dist = [
     { name = "iscc-core", specifier = ">=1.2.2" },
     { name = "iscc-sum", specifier = ">=0.1.0" },
     { name = "numpy", specifier = ">=1.24.0" },
+    { name = "ome-zarr", specifier = ">=0.12.2" },
     { name = "omero-py", specifier = ">=5.21.1" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "zeroc-ice", marker = "sys_platform == 'darwin'", url = "https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl" },
@@ -1421,6 +1426,25 @@ wheels = [
 [package.optional-dependencies]
 lxml = [
     { name = "lxml" },
+]
+
+[[package]]
+name = "ome-zarr"
+version = "0.12.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "dask" },
+    { name = "fsspec", extra = ["s3"] },
+    { name = "numpy" },
+    { name = "requests" },
+    { name = "scikit-image" },
+    { name = "toolz" },
+    { name = "zarr" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a4/44/647843d872aa136609e805c06e9f9b2cdcb6e2a58ec485322311dec7b64d/ome_zarr-0.12.2.tar.gz", hash = "sha256:834e801e9aa4b870bed3dde2dc2a3ad7f388f1a13ffa6b3d7aade90691b9de64", size = 69891, upload-time = "2025-08-22T08:57:13.64Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/21/59baa90924b815b70f88045f0b206b7eab0b68b461c0192692486b516ab7/ome_zarr-0.12.2-py3-none-any.whl", hash = "sha256:655fe1b11ca01148603f9931a5b0af31207dfc03a3a35f9b0ab8639790282bbd", size = 41410, upload-time = "2025-08-22T08:57:12.44Z" },
 ]
 
 [[package]]
