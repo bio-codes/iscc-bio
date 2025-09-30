@@ -7,6 +7,7 @@ import logging
 from iscc_bio.thumb import extract_thumbnail
 from iscc_bio.scene import extract_scenes
 from iscc_bio.views import extract_views, views_to_thumbnails
+from iscc_bio.pixhash import pixhash_bioio, pixhash_omero, pixhash_zarr
 
 
 # Configure logging
@@ -371,6 +372,95 @@ def views(input, strategies, max_views, output_dir, host, iid):
             err=True,
         )
         sys.exit(1)
+
+
+@cli.command()
+@click.argument("input", type=click.Path(exists=True, path_type=Path), required=False)
+@click.option(
+    "--source",
+    "-s",
+    type=click.Choice(["auto", "bioio", "omero", "zarr"], case_sensitive=False),
+    default="auto",
+    help="Data source type (default: auto-detect)",
+)
+@click.option(
+    "--host",
+    help="OMERO server hostname (e.g., omero.iscc.id)",
+)
+@click.option(
+    "--iid",
+    type=int,
+    help="OMERO image ID",
+)
+def pixhash(input, source, host, iid):
+    """
+    Generate normalized pixel hashes for bioimage data.
+
+    Produces reproducible SHA1 hashes over normalized pixel data from various sources:
+    - Local bioimage files (using BioIO)
+    - OMERO server images (using BlitzGateway)
+    - OME-Zarr files
+
+    All implementations produce identical hashes for the same image data.
+    """
+    hashes = []
+
+    # OMERO mode
+    if host and iid:
+        try:
+            click.echo(f"Connecting to OMERO server: {host}")
+            hashes = pixhash_omero(host, iid)
+            click.echo(f"✓ Generated {len(hashes)} hash(es) from OMERO:")
+            for i, h in enumerate(hashes):
+                click.echo(f"  Image {i}: {h}")
+        except Exception as e:
+            click.echo(f"✗ Error with OMERO: {e}", err=True)
+            sys.exit(1)
+
+    # Local file mode
+    elif input:
+        input_path = Path(input)
+
+        if not input_path.exists():
+            click.echo(f"✗ File not found: {input_path}", err=True)
+            sys.exit(1)
+
+        # Auto-detect source type
+        if source == "auto":
+            if input_path.suffix == ".zarr" or (
+                input_path.is_dir() and (input_path / ".zattrs").exists()
+            ):
+                source = "zarr"
+            else:
+                source = "bioio"
+            logger.debug(f"Auto-detected source type: {source}")
+
+        try:
+            if source == "zarr":
+                click.echo(f"Processing OME-Zarr: {input_path}")
+                hashes = pixhash_zarr(str(input_path))
+                click.echo(f"✓ Generated {len(hashes)} hash(es):")
+                for i, h in enumerate(hashes):
+                    click.echo(f"  Series {i}: {h}")
+            else:  # bioio
+                click.echo(f"Processing bioimage: {input_path}")
+                hashes = pixhash_bioio(str(input_path))
+                click.echo(f"✓ Generated {len(hashes)} hash(es):")
+                for i, h in enumerate(hashes):
+                    click.echo(f"  Scene {i}: {h}")
+        except Exception as e:
+            click.echo(f"✗ Error processing {input_path}: {e}", err=True)
+            sys.exit(1)
+
+    else:
+        click.echo(
+            "Error: Please provide either a local file path or "
+            "--host and --iid for OMERO access",
+            err=True,
+        )
+        sys.exit(1)
+
+    return hashes
 
 
 if __name__ == "__main__":
