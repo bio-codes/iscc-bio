@@ -14,6 +14,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Suppress noisy logging from OMERO libraries
+logging.getLogger("omero").setLevel(logging.WARNING)
+logging.getLogger("omero.gateway").setLevel(logging.WARNING)
+
 
 def _plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
     """Convert a 2D plane to canonical byte representation.
