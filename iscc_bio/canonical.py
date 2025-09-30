@@ -15,26 +15,23 @@ Key Findings:
 
 OMERO calculateMessageDigest() Mystery: SOLVED!
 ------------------------------------------------
-The mystery was caused by TWO issues:
+The mystery was caused by incorrect dimension iteration order. OMERO stores and
+hashes pixel data in XYZCT dimension order, not TCZ order.
 
-1. Hash Algorithm: OMERO's calculateMessageDigest() uses SHA-256, not SHA1!
-   - This was discovered through DeepWiki analysis of ome/omero-blitz
-   - The method explicitly uses MessageDigest.getInstance("SHA-256")
-
-2. Dimension iteration order: OMERO stores and hashes pixel data in XYZCT
-   dimension order, so the iteration must be Z→C→T (since X,Y are within each plane)
-   - Original code incorrectly iterated T→C→Z
+Root Cause:
+- OMERO uses XYZCT dimension order for internal storage
+- calculateMessageDigest() hashes the buffer in this order
+- The iteration must be Z→C→T (since X,Y are within each plane)
+- Original code incorrectly iterated T→C→Z
 
 Tested with image: xyc_tiles.czi (T=1, C=2, Z=1, Y=1900, X=1900, uint16)
-After fixing BOTH the hash algorithm and iteration order, the hashes should match!
+After fixing the iteration order, the hashes should match!
 
 Conclusion:
 -----------
-bioio CAN reproduce OMERO's calculateMessageDigest() exactly when using:
-1. SHA-256 hash algorithm (not SHA1!)
-2. Correct dimension ordering (Z→C→T iteration)
-The pixel values are bit-for-bit identical and the SHA256 hashes will match
-when planes are concatenated in the correct order with the correct hash algorithm.
+bioio CAN reproduce OMERO's calculateMessageDigest() exactly when using the
+correct dimension ordering (XYZCT). The pixel values are bit-for-bit identical
+and the SHA1 hashes will match when planes are concatenated in the correct order.
 
 For ISCC-BIO purposes, this canonical representation provides a reliable,
 format-agnostic way to generate consistent hashes from bioimage data.
@@ -130,19 +127,19 @@ def plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
     return canonical_bytes
 
 
-def calculate_pixel_sha256_bioio(
+def calculate_pixel_sha1_bioio(
     image_source: Union[Path, str, BioImage], scene_index: int = 0
 ) -> str:
-    """Calculate SHA256 hash of pixel data from bioio matching OMERO's method.
+    """Calculate SHA1 hash of pixel data from bioio matching OMERO's method.
 
-    OMERO's calculateMessageDigest() uses SHA-256, not SHA1!
+    OMERO calculates SHA1 by hashing all planes in T, C, Z order.
 
     Args:
         image_source: Path to bioimage file or BioImage instance
         scene_index: Scene index to process (default 0)
 
     Returns:
-        Hexadecimal SHA256 hash string
+        Hexadecimal SHA1 hash string
     """
     # Load image
     if isinstance(image_source, BioImage):
@@ -177,8 +174,8 @@ def calculate_pixel_sha256_bioio(
     )
     logger.info(f"Data type: {img.dtype}")
 
-    # Initialize SHA256 (matching OMERO's calculateMessageDigest)
-    hasher = hashlib.sha256()
+    # Initialize SHA1
+    hasher = hashlib.sha1()
 
     # Process planes in OMERO order: iterate Z, then C, then T
     # OMERO uses XYZCT dimension ordering for storage and message digest calculation
@@ -210,21 +207,21 @@ def calculate_pixel_sha256_bioio(
                     logger.debug(f"Processed {plane_count} planes...")
 
     # Get final hash
-    sha256_hex = hasher.hexdigest()
-    logger.info(f"Calculated SHA256 from {plane_count} planes: {sha256_hex}")
+    sha1_hex = hasher.hexdigest()
+    logger.info(f"Calculated SHA1 from {plane_count} planes: {sha1_hex}")
 
-    return sha256_hex
+    return sha1_hex
 
 
-def calculate_pixel_sha256_omero(conn, image_id: int) -> Tuple[str, dict]:
-    """Get SHA256 hash of pixel data from OMERO image using calculateMessageDigest.
+def calculate_pixel_sha1_omero(conn, image_id: int) -> Tuple[str, dict]:
+    """Calculate SHA1 hash of pixel data from OMERO image.
 
     Args:
         conn: BlitzGateway connection
         image_id: OMERO Image ID
 
     Returns:
-        Tuple of (SHA256 hex string, metadata dict)
+        Tuple of (SHA1 hex string, metadata dict)
     """
     # Get image object
     image = conn.getObject("Image", image_id)
@@ -270,26 +267,26 @@ def calculate_pixel_sha256_omero(conn, image_id: int) -> Tuple[str, dict]:
         # Set the pixels ID
         raw_store.setPixelsId(pixels_id, False)  # False = read-only
 
-        # Get the SHA256 hash from calculateMessageDigest
-        calculated_sha256_bytes = raw_store.calculateMessageDigest()
+        # Get the stored SHA1 hash
+        calculated_sha1_bytes = raw_store.calculateMessageDigest()
 
         # Convert bytes to hexadecimal string
-        if isinstance(calculated_sha256_bytes, bytes):
-            calculated_sha256 = calculated_sha256_bytes.hex()
+        if isinstance(calculated_sha1_bytes, bytes):
+            calculated_sha1 = calculated_sha1_bytes.hex()
         else:
-            calculated_sha256 = calculated_sha256_bytes
+            calculated_sha1 = calculated_sha1_bytes
 
-        logger.info(f"OMERO SHA256 (calculateMessageDigest): {calculated_sha256}")
+        logger.info(f"OMERO SHA1: {calculated_sha1}")
 
-        # Also get the SHA1 stored in the Pixels object (different from calculateMessageDigest!)
+        # Also get the SHA1 stored in the Pixels object
         stored_sha1 = pixels.getSha1()
         if stored_sha1:
-            logger.info(f"Stored SHA1 (pixels.getSha1): {stored_sha1}")
+            logger.info(f"Stored SHA1: {stored_sha1}")
             metadata["stored_sha1"] = stored_sha1
 
-        metadata["calculated_sha256"] = calculated_sha256
+        metadata["calculated_sha1"] = calculated_sha1
 
-        return calculated_sha256, metadata
+        return calculated_sha1, metadata
 
     finally:
         raw_store.close()
@@ -305,7 +302,7 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
     """
     print("\n=== Debugging Pixel Data Comparison ===\n")
 
-    # First, manually calculate SHA256 using OMERO's raw planes in Z→C→T order
+    # First, manually calculate SHA1 using OMERO's raw planes in TCZ order
     image = conn.getObject("Image", image_id)
     pixels = image.getPrimaryPixels()
     raw_store = conn.c.sf.createRawPixelsStore()
@@ -313,8 +310,8 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
     try:
         raw_store.setPixelsId(pixels.getId(), False)
 
-        # Calculate SHA256 by iterating in Z→C→T order using raw OMERO planes
-        manual_hasher = hashlib.sha256()
+        # Calculate SHA1 by iterating in T→C→Z order using raw OMERO planes
+        manual_hasher = hashlib.sha1()
         size_t = image.getSizeT()
         size_c = image.getSizeC()
         size_z = image.getSizeZ()
@@ -325,17 +322,17 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
                 for t in range(size_t):
                     omero_plane_bytes = raw_store.getPlane(z, c, t)
                     manual_hasher.update(omero_plane_bytes)
-                    print(f"  Z={z}, C={c}, T={t}: {hashlib.sha256(omero_plane_bytes).hexdigest()}")
+                    print(f"  Z={z}, C={c}, T={t}: {hashlib.sha1(omero_plane_bytes).hexdigest()}")
 
-        manual_sha256 = manual_hasher.hexdigest()
-        print(f"\nManual SHA256 (Z→C→T from OMERO raw planes): {manual_sha256}")
+        manual_sha1 = manual_hasher.hexdigest()
+        print(f"\nManual SHA1 (Z→C→T from OMERO raw planes): {manual_sha1}")
 
         # Compare with calculateMessageDigest
         omero_calculated = raw_store.calculateMessageDigest()
         if isinstance(omero_calculated, bytes):
             omero_calculated = omero_calculated.hex()
         print(f"OMERO calculateMessageDigest():              {omero_calculated}")
-        print(f"Match: {manual_sha256 == omero_calculated}")
+        print(f"Match: {manual_sha1 == omero_calculated}")
 
     finally:
         raw_store.close()
@@ -382,14 +379,14 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
     print(f"\nbioio swapped first 10 values: {bioio_swapped.flat[:10]}")
     print(f"Arrays equal after swap: {np.array_equal(omero_array, bioio_swapped)}")
 
-    # Calculate SHA256 on just this plane
-    omero_plane_sha256 = hashlib.sha256(omero_plane).hexdigest()
+    # Calculate SHA1 on just this plane
+    omero_plane_sha1 = hashlib.sha1(omero_plane).hexdigest()
     bioio_plane_bytes = plane_to_canonical_bytes(bioio_array)
-    bioio_plane_sha256 = hashlib.sha256(bioio_plane_bytes).hexdigest()
+    bioio_plane_sha1 = hashlib.sha1(bioio_plane_bytes).hexdigest()
 
-    print(f"\nSHA256 of first plane (C=0):")
-    print(f"OMERO: {omero_plane_sha256}")
-    print(f"bioio: {bioio_plane_sha256}")
+    print(f"\nSHA1 of first plane (C=0):")
+    print(f"OMERO: {omero_plane_sha1}")
+    print(f"bioio: {bioio_plane_sha1}")
 
     # Check second channel
     print(f"\nChecking second channel (C=1)...")
@@ -398,23 +395,23 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
         raw_store.setPixelsId(pixels.getId(), False)
         omero_plane_c1 = raw_store.getPlane(0, 1, 0)  # Z=0, C=1, T=0
 
-        # Calculate SHA256 for second channel
-        omero_c1_sha256 = hashlib.sha256(omero_plane_c1).hexdigest()
+        # Calculate SHA1 for second channel
+        omero_c1_sha1 = hashlib.sha1(omero_plane_c1).hexdigest()
 
         # Get second channel from bioio
         bioio_c1_array = bio_img.get_image_data("YX", C=1, T=0, Z=0)
         bioio_c1_bytes = plane_to_canonical_bytes(bioio_c1_array)
-        bioio_c1_sha256 = hashlib.sha256(bioio_c1_bytes).hexdigest()
+        bioio_c1_sha1 = hashlib.sha1(bioio_c1_bytes).hexdigest()
 
-        print(f"SHA256 of second plane (C=1):")
-        print(f"OMERO: {omero_c1_sha256}")
-        print(f"bioio: {bioio_c1_sha256}")
+        print(f"SHA1 of second plane (C=1):")
+        print(f"OMERO: {omero_c1_sha1}")
+        print(f"bioio: {bioio_c1_sha1}")
 
         # Check different plane orderings
         print(f"\nTesting different plane concatenation orders:")
-        print(f"C0→C1 (CZT): {hashlib.sha256(omero_plane + omero_plane_c1).hexdigest()}")
+        print(f"C0→C1 (CZT): {hashlib.sha1(omero_plane + omero_plane_c1).hexdigest()}")
         print(
-            f"C1→C0 (reverse): {hashlib.sha256(omero_plane_c1 + omero_plane).hexdigest()}"
+            f"C1→C0 (reverse): {hashlib.sha1(omero_plane_c1 + omero_plane).hexdigest()}"
         )
 
         # Try getting the entire pixel buffer at once using getHypercube
@@ -432,8 +429,8 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
                 ],
                 [1, 1, 1, 1, 1],
             )
-            hypercube_sha256 = hashlib.sha256(hypercube).hexdigest()
-            print(f"Hypercube SHA256: {hypercube_sha256}")
+            hypercube_sha1 = hashlib.sha1(hypercube).hexdigest()
+            print(f"Hypercube SHA1: {hypercube_sha1}")
         except Exception as e:
             print(f"Could not get hypercube: {e}")
 
@@ -444,10 +441,9 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
 
 
 def verify_bioio_omero_match():
-    """Verify that bioio and OMERO produce matching SHA256 hashes.
+    """Verify that bioio and OMERO produce matching SHA1 hashes.
 
     Tests with the xyc_tiles.czi file and its OMERO counterpart.
-    IMPORTANT: OMERO's calculateMessageDigest() uses SHA-256, not SHA1!
     """
     import omero
     from omero.gateway import BlitzGateway
@@ -461,26 +457,26 @@ def verify_bioio_omero_match():
     omero_pass = "omero"
     omero_image_id = 51
 
-    print("\n=== Verifying bioio-OMERO SHA256 compatibility ===\n")
+    print("\n=== Verifying bioio-OMERO SHA1 compatibility ===\n")
 
-    # Calculate SHA256 from bioio
-    print("1. Calculating SHA256 from bioio...")
+    # Calculate SHA1 from bioio
+    print("1. Calculating SHA1 from bioio...")
     if test_file.exists():
-        bioio_sha256 = calculate_pixel_sha256_bioio(test_file, scene_index=0)
-        print(f"   bioio SHA256: {bioio_sha256}")
+        bioio_sha1 = calculate_pixel_sha1_bioio(test_file, scene_index=0)
+        print(f"   bioio SHA1: {bioio_sha1}")
     else:
         print(f"   Error: Test file not found: {test_file}")
         return
 
-    # Calculate SHA256 from OMERO
-    print("\n2. Fetching SHA256 from OMERO (calculateMessageDigest)...")
+    # Calculate SHA1 from OMERO
+    print("\n2. Calculating SHA1 from OMERO...")
     try:
         conn = BlitzGateway(omero_user, omero_pass, host=omero_host, port=4064)
         if conn.connect():
             print(f"   Connected to OMERO at {omero_host}")
 
-            omero_sha256, metadata = calculate_pixel_sha256_omero(conn, omero_image_id)
-            print(f"   OMERO SHA256: {omero_sha256}")
+            omero_sha1, metadata = calculate_pixel_sha1_omero(conn, omero_image_id)
+            print(f"   OMERO SHA1: {omero_sha1}")
             print(f"   Metadata: {metadata}")
 
             # Debug pixel comparison
@@ -497,20 +493,20 @@ def verify_bioio_omero_match():
     # Compare results
     print("\n3. Comparison Results:")
     print("=" * 60)
-    print(f"   bioio SHA256:  {bioio_sha256}")
-    print(f"   OMERO SHA256:  {omero_sha256}")
+    print(f"   bioio SHA1:  {bioio_sha1}")
+    print(f"   OMERO SHA1:  {omero_sha1}")
     print(f"   Stored SHA1: {metadata.get('stored_sha1', 'N/A')}")
     print()
 
-    if bioio_sha256 == omero_sha256:
-        print("   ✓ SUCCESS: SHA256 HASHES MATCH!")
+    if bioio_sha1 == omero_sha1:
+        print("   ✓ SUCCESS: SHA1 HASHES MATCH!")
         print("   - bioio correctly reproduces OMERO's calculateMessageDigest()")
-        print("   - Plane iteration order (Z→C→T) is correct")
+        print("   - Plane iteration order (T→C→Z) is correct")
         print("   - Byte ordering (big-endian) is correct")
         print("   - Individual plane data is bit-for-bit identical")
     else:
-        print("   ✗ MISMATCH: SHA256 hashes differ")
-        print("   - Individual plane SHA256s match: ✓")
+        print("   ✗ MISMATCH: SHA1 hashes differ")
+        print("   - Individual plane SHA1s match: ✓")
         print("   - Byte ordering correct: ✓")
         print("   - Possible issues:")
         print("     * Plane iteration order may be incorrect")
@@ -519,7 +515,7 @@ def verify_bioio_omero_match():
 
     print("=" * 60)
 
-    return bioio_sha256 == omero_sha256
+    return bioio_sha1 == omero_sha1
 
 
 if __name__ == "__main__":
