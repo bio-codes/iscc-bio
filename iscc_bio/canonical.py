@@ -21,14 +21,14 @@ def numpy_dtype_to_omero_type(dtype: np.dtype) -> str:
         OMERO PixelsType string (e.g., 'uint16', 'float')
     """
     mapping = {
-        np.dtype('uint8'): 'uint8',
-        np.dtype('uint16'): 'uint16',
-        np.dtype('uint32'): 'uint32',
-        np.dtype('int8'): 'int8',
-        np.dtype('int16'): 'int16',
-        np.dtype('int32'): 'int32',
-        np.dtype('float32'): 'float',
-        np.dtype('float64'): 'double',
+        np.dtype("uint8"): "uint8",
+        np.dtype("uint16"): "uint16",
+        np.dtype("uint32"): "uint32",
+        np.dtype("int8"): "int8",
+        np.dtype("int16"): "int16",
+        np.dtype("int32"): "int32",
+        np.dtype("float32"): "float",
+        np.dtype("float64"): "double",
     }
     return mapping.get(dtype, str(dtype))
 
@@ -44,14 +44,14 @@ def numpy_dtype_to_struct_format(dtype: np.dtype) -> str:
     """
     # Big-endian format characters (> prefix means big-endian)
     mapping = {
-        np.dtype('uint8'): 'B',
-        np.dtype('uint16'): 'H',
-        np.dtype('uint32'): 'I',
-        np.dtype('int8'): 'b',
-        np.dtype('int16'): 'h',
-        np.dtype('int32'): 'i',
-        np.dtype('float32'): 'f',
-        np.dtype('float64'): 'd',
+        np.dtype("uint8"): "B",
+        np.dtype("uint16"): "H",
+        np.dtype("uint32"): "I",
+        np.dtype("int8"): "b",
+        np.dtype("int16"): "h",
+        np.dtype("int32"): "i",
+        np.dtype("float32"): "f",
+        np.dtype("float64"): "d",
     }
 
     format_char = mapping.get(dtype)
@@ -80,7 +80,7 @@ def plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
     format_char = numpy_dtype_to_struct_format(plane.dtype)
 
     # Flatten plane to 1D in C-order (row-major, Y then X)
-    flat = plane.flatten(order='C')
+    flat = plane.flatten(order="C")
 
     # Pack to bytes in big-endian format
     # > prefix means big-endian
@@ -91,8 +91,7 @@ def plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
 
 
 def calculate_pixel_sha1_bioio(
-    image_source: Union[Path, str, BioImage],
-    scene_index: int = 0
+    image_source: Union[Path, str, BioImage], scene_index: int = 0
 ) -> str:
     """Calculate SHA1 hash of pixel data from bioio matching OMERO's method.
 
@@ -122,18 +121,20 @@ def calculate_pixel_sha1_bioio(
     dim_order = dims.order
 
     # Find dimension indices
-    t_idx = dim_order.index('T') if 'T' in dim_order else None
-    c_idx = dim_order.index('C') if 'C' in dim_order else None
-    z_idx = dim_order.index('Z') if 'Z' in dim_order else None
-    y_idx = dim_order.index('Y')
-    x_idx = dim_order.index('X')
+    t_idx = dim_order.index("T") if "T" in dim_order else None
+    c_idx = dim_order.index("C") if "C" in dim_order else None
+    z_idx = dim_order.index("Z") if "Z" in dim_order else None
+    y_idx = dim_order.index("Y")
+    x_idx = dim_order.index("X")
 
     # Get dimension sizes
     size_t = shape[t_idx] if t_idx is not None else 1
     size_c = shape[c_idx] if c_idx is not None else 1
     size_z = shape[z_idx] if z_idx is not None else 1
 
-    logger.info(f"Image dimensions: T={size_t}, C={size_c}, Z={size_z}, Y={shape[y_idx]}, X={shape[x_idx]}")
+    logger.info(
+        f"Image dimensions: T={size_t}, C={size_c}, Z={size_z}, Y={shape[y_idx]}, X={shape[x_idx]}"
+    )
     logger.info(f"Data type: {img.dtype}")
 
     # Initialize SHA1
@@ -148,11 +149,11 @@ def calculate_pixel_sha1_bioio(
                 # Get the plane
                 kwargs = {}
                 if t_idx is not None:
-                    kwargs['T'] = t
+                    kwargs["T"] = t
                 if c_idx is not None:
-                    kwargs['C'] = c
+                    kwargs["C"] = c
                 if z_idx is not None:
-                    kwargs['Z'] = z
+                    kwargs["Z"] = z
 
                 # Get 2D plane
                 plane = img.get_image_data("YX", **kwargs)
@@ -204,15 +205,15 @@ def calculate_pixel_sha1_omero(conn, image_id: int) -> Tuple[str, dict]:
     pixel_type = str(pixels.getPixelsType().getValue())
 
     # Get series/scene index if available
-    series = image.getSeries() if hasattr(image, 'getSeries') else 0
+    series = image.getSeries() if hasattr(image, "getSeries") else 0
 
     metadata = {
-        'image_id': image_id,
-        'image_name': image.getName(),
-        'pixels_id': pixels_id,
-        'dimensions': f"T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}",
-        'pixel_type': pixel_type,
-        'series': series,
+        "image_id": image_id,
+        "image_name": image.getName(),
+        "pixels_id": pixels_id,
+        "dimensions": f"T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}",
+        "pixel_type": pixel_type,
+        "series": series,
     }
 
     logger.info(f"OMERO Image: {metadata}")
@@ -239,9 +240,9 @@ def calculate_pixel_sha1_omero(conn, image_id: int) -> Tuple[str, dict]:
         stored_sha1 = pixels.getSha1()
         if stored_sha1:
             logger.info(f"Stored SHA1: {stored_sha1}")
-            metadata['stored_sha1'] = stored_sha1
+            metadata["stored_sha1"] = stored_sha1
 
-        metadata['calculated_sha1'] = calculated_sha1
+        metadata["calculated_sha1"] = calculated_sha1
 
         return calculated_sha1, metadata
 
@@ -271,10 +272,13 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
 
         # Convert OMERO bytes to numpy array
         import struct
+
         pixel_count = image.getSizeX() * image.getSizeY()
         # Unpack as big-endian uint16
         omero_values = struct.unpack(f">{pixel_count}H", omero_plane)
-        omero_array = np.array(omero_values, dtype=np.uint16).reshape(image.getSizeY(), image.getSizeX())
+        omero_array = np.array(omero_values, dtype=np.uint16).reshape(
+            image.getSizeY(), image.getSizeX()
+        )
 
     finally:
         raw_store.close()
@@ -327,17 +331,25 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
         # Check different plane orderings
         print(f"\nTesting different plane concatenation orders:")
         print(f"C0→C1 (CZT): {hashlib.sha1(omero_plane + omero_plane_c1).hexdigest()}")
-        print(f"C1→C0 (reverse): {hashlib.sha1(omero_plane_c1 + omero_plane).hexdigest()}")
+        print(
+            f"C1→C0 (reverse): {hashlib.sha1(omero_plane_c1 + omero_plane).hexdigest()}"
+        )
 
         # Try getting the entire pixel buffer at once using getHypercube
         print(f"\nTrying to get entire pixel buffer via getHypercube...")
         try:
             # Get all data as hypercube (all Z, C, T)
-            hypercube = raw_store.getHypercube([0, 0, 0, 0, 0],
-                                                [image.getSizeX(), image.getSizeY(),
-                                                 image.getSizeZ(), image.getSizeC(),
-                                                 image.getSizeT()],
-                                                [1, 1, 1, 1, 1])
+            hypercube = raw_store.getHypercube(
+                [0, 0, 0, 0, 0],
+                [
+                    image.getSizeX(),
+                    image.getSizeY(),
+                    image.getSizeZ(),
+                    image.getSizeC(),
+                    image.getSizeT(),
+                ],
+                [1, 1, 1, 1, 1],
+            )
             hypercube_sha1 = hashlib.sha1(hypercube).hexdigest()
             print(f"Hypercube SHA1: {hypercube_sha1}")
         except Exception as e:
