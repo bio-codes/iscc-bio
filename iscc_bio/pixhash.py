@@ -1,11 +1,11 @@
 """Normalized pixel hash generation for bioimaging data.
 
-This module provides compatible implementations for generating reproducible SHA1 hashes
+This module provides compatible implementations for generating reproducible ISCC-SUM hashes
 over normalized pixel data from various bioimage sources (local files, OMERO server, OME-Zarr).
 All implementations produce identical hashes for the same image data.
 """
 
-import hashlib
+import iscc_sum
 import struct
 from pathlib import Path
 from typing import List, Union
@@ -56,13 +56,13 @@ def _plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
 
 
 def pixhash_bioio(image_path: str) -> List[str]:
-    """Generate SHA1 hashes for each scene in a bioimage file using BioIO.
+    """Generate ISCC-SUM hashes for each scene in a bioimage file using BioIO.
 
     Args:
         image_path: Path to the bioimage file
 
     Returns:
-        List of SHA1 hash strings (one per scene)
+        List of ISCC-SUM hash strings (one per scene)
     """
     from bioio import BioImage
 
@@ -106,7 +106,7 @@ def pixhash_bioio(image_path: str) -> List[str]:
         )
 
         # Initialize hasher for this scene
-        hasher = hashlib.sha1()
+        hasher = iscc_sum.IsccSumProcessor()
 
         # Process planes in Z→C→T order (OMERO XYZCT storage order)
         for z in range(size_z):
@@ -129,22 +129,22 @@ def pixhash_bioio(image_path: str) -> List[str]:
                     hasher.update(canonical_bytes)
 
         # Get final hash for this scene
-        scene_hash = hasher.hexdigest()
+        scene_hash = hasher.result(wide=True, add_units=False).iscc
         hashes.append(scene_hash)
-        logger.info(f"Scene {scene_idx} SHA1: {scene_hash}")
+        logger.info(f"Scene {scene_idx}: {scene_hash}")
 
     return hashes
 
 
 def pixhash_omero(server_url: str, image_id: int) -> List[str]:
-    """Generate SHA1 hashes for all images in an OMERO OriginalFile.
+    """Generate ISCC-SUM hashes for all images in an OMERO OriginalFile.
 
     Args:
         server_url: OMERO server URL (e.g., "omero.server.com")
         image_id: OMERO image ID
 
     Returns:
-        List of SHA1 hash strings (one per image in the OriginalFile)
+        List of ISCC-SUM hash strings (one per image in the OriginalFile)
     """
     from omero.gateway import BlitzGateway
 
@@ -195,28 +195,41 @@ def pixhash_omero(server_url: str, image_id: int) -> List[str]:
                 f"Image dimensions: T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}"
             )
 
-            # Create RawPixelsStore for reading pixel data
-            raw_store = conn.c.sf.createRawPixelsStore()
+            # Initialize hasher for this image
+            hasher = iscc_sum.IsccSumProcessor()
 
-            try:
-                # Set the pixels ID
-                raw_store.setPixelsId(pixels_id, False)  # False = read-only
+            # Process planes in Z→C→T order (OMERO XYZCT storage order)
+            for z in range(size_z):
+                for c in range(size_c):
+                    for t in range(size_t):
+                        # Get 2D plane using OMERO's getPrimaryPixels
+                        plane = pixels.getPlane(z, c, t)
 
-                # Option 1: Use OMERO's built-in calculateMessageDigest
-                # This is the most reliable way to get the canonical hash
-                calculated_sha1_bytes = raw_store.calculateMessageDigest()
+                        # Convert to numpy array with appropriate dtype
+                        dtype_str = str(pixels.getPixelsType().getValue())
+                        dtype_map = {
+                            "uint8": np.uint8,
+                            "uint16": np.uint16,
+                            "uint32": np.uint32,
+                            "int8": np.int8,
+                            "int16": np.int16,
+                            "int32": np.int32,
+                            "float": np.float32,
+                            "double": np.float64,
+                        }
 
-                # Convert bytes to hexadecimal string
-                if isinstance(calculated_sha1_bytes, bytes):
-                    calculated_sha1 = calculated_sha1_bytes.hex()
-                else:
-                    calculated_sha1 = calculated_sha1_bytes
+                        np_dtype = dtype_map.get(dtype_str, np.uint8)
+                        plane_array = np.frombuffer(plane, dtype=np_dtype)
+                        plane_array = plane_array.reshape(size_y, size_x)
 
-                hashes.append(calculated_sha1)
-                logger.info(f"Image {img.getId()} SHA1: {calculated_sha1}")
+                        # Convert to canonical bytes and update hash
+                        canonical_bytes = _plane_to_canonical_bytes(plane_array)
+                        hasher.update(canonical_bytes)
 
-            finally:
-                raw_store.close()
+            # Get final hash for this image
+            image_hash = hasher.result(wide=True, add_units=False).iscc
+            hashes.append(image_hash)
+            logger.info(f"Image {img.getId()}: {image_hash}")
 
         return hashes
 
@@ -225,13 +238,13 @@ def pixhash_omero(server_url: str, image_id: int) -> List[str]:
 
 
 def pixhash_zarr(zarr_path: str) -> List[str]:
-    """Generate SHA1 hashes for each series in an OME-Zarr file.
+    """Generate ISCC-SUM hashes for each series in an OME-Zarr file.
 
     Args:
         zarr_path: Path to the OME-Zarr file/directory
 
     Returns:
-        List of SHA1 hash strings (one per series)
+        List of ISCC-SUM strings (one per series)
     """
     import zarr
 
@@ -351,7 +364,7 @@ def pixhash_zarr(zarr_path: str) -> List[str]:
         )
 
         # Initialize hasher for this series
-        hasher = hashlib.sha1()
+        hasher = iscc_sum.IsccSumProcessor()
 
         # Process planes in Z→C→T order (matching OMERO)
         for z in range(size_z):
@@ -381,8 +394,8 @@ def pixhash_zarr(zarr_path: str) -> List[str]:
                     hasher.update(canonical_bytes)
 
         # Get final hash for this series
-        series_hash = hasher.hexdigest()
+        series_hash = hasher.result(wide=True, add_units=False).iscc
         hashes.append(series_hash)
-        logger.info(f"Series {series_key} SHA1: {series_hash}")
+        logger.info(f"Series {series_key}: {series_hash}")
 
     return hashes
