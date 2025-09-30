@@ -246,7 +246,11 @@ def calculate_pixel_sha1_omero(conn, image_id: int) -> Tuple[str, dict]:
     series = image.getSeries() if hasattr(image, "getSeries") else 0
 
     # Check if this is a pyramid/multi-resolution image
-    is_pyramid = pixels.requiresPixelsPyramid() if hasattr(pixels, "requiresPixelsPyramid") else False
+    is_pyramid = (
+        pixels.requiresPixelsPyramid()
+        if hasattr(pixels, "requiresPixelsPyramid")
+        else False
+    )
 
     metadata = {
         "image_id": image_id,
@@ -316,13 +320,17 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
         size_c = image.getSizeC()
         size_z = image.getSizeZ()
 
-        print(f"Manually hashing OMERO planes in Z→C→T order (Z={size_z}, C={size_c}, T={size_t})...")
+        print(
+            f"Manually hashing OMERO planes in Z→C→T order (Z={size_z}, C={size_c}, T={size_t})..."
+        )
         for z in range(size_z):
             for c in range(size_c):
                 for t in range(size_t):
                     omero_plane_bytes = raw_store.getPlane(z, c, t)
                     manual_hasher.update(omero_plane_bytes)
-                    print(f"  Z={z}, C={c}, T={t}: {hashlib.sha1(omero_plane_bytes).hexdigest()}")
+                    print(
+                        f"  Z={z}, C={c}, T={t}: {hashlib.sha1(omero_plane_bytes).hexdigest()}"
+                    )
 
         manual_sha1 = manual_hasher.hexdigest()
         print(f"\nManual SHA1 (Z→C→T from OMERO raw planes): {manual_sha1}")
