@@ -33,28 +33,19 @@ def _plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
     if plane.ndim != 2:
         raise ValueError(f"Expected 2D plane, got {plane.ndim}D")
 
-    # Get the struct format character
-    dtype_map = {
-        np.dtype("uint8"): "B",
-        np.dtype("uint16"): "H",
-        np.dtype("uint32"): "I",
-        np.dtype("int8"): "b",
-        np.dtype("int16"): "h",
-        np.dtype("int32"): "i",
-        np.dtype("float32"): "f",
-        np.dtype("float64"): "d",
-    }
-
-    format_char = dtype_map.get(plane.dtype)
-    if not format_char:
-        raise ValueError(f"Unsupported dtype: {plane.dtype}")
-
     # Flatten plane in C-order (row-major: Y then X)
     flat = plane.flatten(order="C")
 
-    # Pack to bytes in big-endian format
-    format_str = f">{len(flat)}{format_char}"
-    canonical_bytes = struct.pack(format_str, *flat)
+    # Use numpy's tobytes() with explicit big-endian conversion
+    # This is MUCH faster than struct.pack for large arrays
+    if flat.dtype.byteorder == ">" or (
+        flat.dtype.byteorder == "=" and np.little_endian
+    ):
+        # Already big-endian or need to swap
+        canonical_bytes = flat.astype(f">{flat.dtype.char}", copy=False).tobytes()
+    else:
+        # Convert to big-endian
+        canonical_bytes = flat.astype(f">{flat.dtype.char}").tobytes()
 
     return canonical_bytes
 
