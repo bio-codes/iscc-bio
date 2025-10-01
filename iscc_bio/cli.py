@@ -8,6 +8,7 @@ from iscc_bio.thumb import extract_thumbnail
 from iscc_bio.scene import extract_scenes
 from iscc_bio.views import extract_views, views_to_thumbnails
 from iscc_bio.pixhash import pixhash_bioio, pixhash_omero, pixhash_zarr
+from iscc_bio.biocode import generate_biocode, format_output
 
 
 # Configure logging
@@ -461,6 +462,66 @@ def pixhash(input, source, host, iid):
         sys.exit(1)
 
     return hashes
+
+
+@cli.command()
+@click.argument("input", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--output-dir",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Directory to save view PNGs (optional)",
+)
+@click.option(
+    "--max-views",
+    "-n",
+    default=5,
+    type=int,
+    help="Maximum views per scene (default: 5)",
+)
+def biocode(input, output_dir, max_views):
+    """
+    Generate bioimage fingerprints with ISCC-SUM and ISCC-MIXED codes.
+
+    Creates comprehensive bioimage fingerprints by:
+    - Generating ISCC-SUM hash over normalized pixel content
+    - Extracting ~5 representative views per scene
+    - Generating ISCC-IMAGE codes for each view
+    - Combining view codes into a global ISCC-MIXED descriptor
+
+    Saves selected views as PNG files if --output-dir is specified.
+    """
+    input_path = Path(input)
+
+    if not input_path.is_file():
+        click.echo(f"Error: {input_path} is not a file", err=True)
+        sys.exit(1)
+
+    try:
+        logger.info(f"Generating biocode for: {input_path}")
+
+        # Generate fingerprints
+        fingerprints = generate_biocode(
+            str(input_path), output_dir=output_dir, max_views=max_views
+        )
+
+        # Format and display output
+        output = format_output(fingerprints, input_path.name)
+        click.echo(output)
+
+        # Summary
+        total_views = sum(len(fp.views) for fp in fingerprints)
+        click.echo(
+            f"✓ Generated {len(fingerprints)} scene fingerprint(s) with {total_views} total views"
+        )
+
+        if output_dir:
+            click.echo(f"✓ Saved views to: {output_dir}")
+
+    except Exception as e:
+        click.echo(f"✗ Error processing {input_path}: {e}", err=True)
+        logger.exception("Biocode generation failed")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
