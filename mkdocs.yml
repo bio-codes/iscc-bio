@@ -1,0 +1,92 @@
+site_name: ISCC-BIO
+site_description: 'International Standard Content Code (ISCC) for Bioimaging'
+site_author: 'Titusz Pan'
+site_url: 'https://bio.iscc.codes'
+docs_dir: docs
+
+# Repository
+repo_name: 'bio-codes/iscc-bio'
+repo_url: 'https://github.com/bio-codes/iscc-bio'
+edit_uri: 'edit/main/docs/'
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  analytics:
+    provider: custom
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: images/iscc-logo-icon-white.svg
+  favicon: images/iscc-logo-icon-black.svg
+  language: en
+  font: false
+  features:
+    - navigation.indexes
+    - navigation.tracking
+    - navigation.expand
+    - content.code.copy
+
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+
+plugins:
+  - search
+  - glightbox
+
+markdown_extensions:
+  - pymdownx.tabbed:
+      alternate_style: true
+  - abbr
+  - pymdownx.snippets:
+      base_path: ["docs/includes"]
+      auto_append: ["abbreviations.md"]
+  - pymdownx.emoji:
+      emoji_index: material.extensions.emoji.twemoji
+      emoji_generator: material.extensions.emoji.to_svg
+  - tables
+  - meta
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - footnotes
+  - toc:
+      permalink: "#"
+      toc_depth: 3
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.magiclink
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: pymdownx.superfences.fence_code_format
+
+nav:
+  - Overview: index.md
+  - Specifications:
+    - Image Walk: specifications/imagewalk.md
+  - Changelog: changelog.md
+
+
+
