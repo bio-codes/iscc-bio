@@ -80,21 +80,19 @@ order).
 ## 3. Algorithm Overview
 
 ```mermaid
-graph TD
-    A[Multi-dimensional Bioimage] --> B[For Each Scene/Series]
-    B --> C[Identify Dimensions T,C,Z,Y,X]
-    C --> D[Initialize Hash Processor]
-    D --> E[Iterate: Z → C → T]
-    E --> F[Extract 2D Plane Y×X]
-    F --> G[Flatten Row-Major Y,X]
-    G --> H[Convert to Big-Endian Bytes]
-    H --> I[Feed to Hash Processor]
-    I --> J{More Planes?}
-    J -->|Yes| E
-    J -->|No| K[Finalize Scene Hash]
-    K --> L{More Scenes?}
-    L -->|Yes| B
-    L -->|No| M[Return Hash List]
+flowchart LR
+    A[Bioimage Input] --> B{For Each<br/>Scene}
+    B --> C[Initialize:<br/>• Get T,C,Z,Y,X<br/>• Create Hash]
+
+    C --> D{For Each Plane<br/>Z→C→T}
+    D --> E[Process:<br/>• Extract 2D<br/>• Flatten Y,X<br/>• Big-Endian<br/>• Update Hash]
+
+    E --> D
+    D -->|All Planes| F[Finalize Hash]
+    F --> B
+    B -->|All Scenes| G[Return Hashes]
+
+    style E fill:#e8f5e9
 ```
 
 The algorithm processes bioimages deterministically by:
@@ -326,8 +324,9 @@ Implementations **SHOULD**:
 
 Implementations **MUST** support the following pixel data types:
 
-**Unsigned integers**: uint8, uint16, uint32 **Signed integers**: int8, int16, int32 **Floating point**: float32
-(single precision), float64 (double precision)
+- **Unsigned integers**: uint8, uint16, uint32
+- **Signed integers**: int8, int16, int32
+- **Floating point**: float32 (single precision), float64 (double precision)
 
 Implementations **MAY** support additional types (e.g., uint64, int64, complex64, complex128) but **MUST**
 document their byte encoding conventions.

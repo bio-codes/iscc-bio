@@ -83,6 +83,5 @@ markdown_extensions:
 
 nav:
   - Overview: index.md
-  - Specifications:
-    - Image Walk: specifications/imagewalk.md
+  - Image Walk: imagewalk.md
   - Changelog: changelog.md
