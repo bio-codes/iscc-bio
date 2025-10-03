@@ -101,16 +101,41 @@ def _calculate_focus_score(plane: np.ndarray) -> float:
     return float(np.var(laplacian))
 
 
-def _resize_to_cache(plane: np.ndarray, target_size: int = 384) -> np.ndarray:
-    """Resize plane to cache size for later view extraction."""
-    if plane.dtype != np.uint8:
-        p_min, p_max = plane.min(), plane.max()
-        if p_max > p_min:
-            plane_norm = ((plane - p_min) / (p_max - p_min) * 255).astype(np.uint8)
-        else:
-            plane_norm = np.zeros_like(plane, dtype=np.uint8)
+def _calculate_coverage(plane: np.ndarray) -> float:
+    """Calculate coverage (proportion of non-background pixels)."""
+    if plane.size == 0:
+        return 0.0
+
+    # Determine threshold based on dtype
+    if plane.dtype == np.uint8:
+        threshold = 10
     else:
-        plane_norm = plane
+        threshold = np.percentile(plane, 5) if plane.size > 0 else 0
+
+    return float(np.mean(plane > threshold))
+
+
+def _resize_to_cache(plane: np.ndarray, target_size: int = 384) -> np.ndarray:
+    """Resize plane to cache size with contrast enhancement."""
+    # Apply percentile-based contrast enhancement
+    p2, p98 = np.percentile(plane, [2, 98])
+
+    if p98 > p2:
+        # Stretch to full range
+        plane_enhanced = np.clip((plane - p2) / (p98 - p2), 0, 1)
+        # Apply gamma correction for better contrast
+        plane_enhanced = np.power(plane_enhanced, 0.8)
+        plane_norm = (plane_enhanced * 255).astype(np.uint8)
+    else:
+        # Fallback for uniform images
+        if plane.dtype != np.uint8:
+            p_min, p_max = plane.min(), plane.max()
+            if p_max > p_min:
+                plane_norm = ((plane - p_min) / (p_max - p_min) * 255).astype(np.uint8)
+            else:
+                plane_norm = np.zeros_like(plane, dtype=np.uint8)
+        else:
+            plane_norm = plane
 
     pil_img = Image.fromarray(plane_norm, mode="L")
     pil_img.thumbnail((target_size, target_size), Image.Resampling.LANCZOS)
@@ -150,6 +175,9 @@ class ViewSelector:
         self.best_focus_per_channel: Dict[int, Tuple[float, CandidateView]] = {}
         self.best_entropy_per_channel: Dict[int, Tuple[float, CandidateView]] = {}
         self.middle_z_cached = False
+        self.channel_planes: Dict[
+            int, np.ndarray
+        ] = {}  # Cache for composite generation
 
     def process_plane(
         self, plane: np.ndarray, z: int, c: int, t: int, dims: Dict[str, int]
@@ -170,24 +198,41 @@ class ViewSelector:
         # Calculate quality metrics
         entropy = _calculate_entropy(plane)
         focus_score = _calculate_focus_score(plane)
+        coverage = _calculate_coverage(plane)
 
-        # Cache middle Z plane
-        middle_z = dims["Z"] // 2
-        if z == middle_z and not self.middle_z_cached:
-            cached = _resize_to_cache(plane, self.cache_size)
-            candidate = CandidateView(
-                data=cached,
-                z=z,
-                c=c,
-                t=t,
-                quality_score=entropy,
-                view_type="middle",
-                metadata={"entropy": entropy, "focus": focus_score},
-            )
-            self.candidates.append(candidate)
-            self.middle_z_cached = True
+        # Cache middle Z plane as fallback for multi-Z stacks
+        # Skip for single-Z images to avoid duplicates with focus views
+        if dims["Z"] > 1:
+            middle_z = dims["Z"] // 2
+            if z == middle_z and not self.middle_z_cached and middle_z > 0:
+                cached = _resize_to_cache(plane, self.cache_size)
+                candidate = CandidateView(
+                    data=cached,
+                    z=z,
+                    c=c,
+                    t=t,
+                    quality_score=entropy,
+                    view_type="middle",
+                    metadata={
+                        "entropy": entropy,
+                        "focus": focus_score,
+                        "coverage": coverage,
+                    },
+                )
+                self.candidates.append(candidate)
+                self.middle_z_cached = True
 
-        # Track best focus per channel
+        # Quality thresholds for other views
+        min_entropy = 3.5
+        min_coverage = 0.1
+
+        # Skip very low quality planes UNLESS we have no views yet (ensure at least one)
+        if (entropy < min_entropy or coverage < min_coverage) and len(
+            self.best_focus_per_channel
+        ) > 0:
+            return
+
+        # Track best focus per channel (also serves as fallback for single-Z images)
         if (
             c not in self.best_focus_per_channel
             or focus_score > self.best_focus_per_channel[c][0]
@@ -198,84 +243,201 @@ class ViewSelector:
                 z=z,
                 c=c,
                 t=t,
-                quality_score=entropy,
+                quality_score=max(entropy, 1.0),  # Minimum quality for fallback
                 view_type="focus",
-                metadata={"entropy": entropy, "focus": focus_score},
+                metadata={
+                    "entropy": entropy,
+                    "focus": focus_score,
+                    "coverage": coverage,
+                },
             )
             self.best_focus_per_channel[c] = (focus_score, candidate)
+            # Cache plane for composite generation
+            if c not in self.channel_planes:
+                self.channel_planes[c] = cached
 
         # Track best entropy per channel
-        if entropy > 3.0:  # Minimum threshold
-            if (
-                c not in self.best_entropy_per_channel
-                or entropy > self.best_entropy_per_channel[c][0]
-            ):
-                cached = _resize_to_cache(plane, self.cache_size)
-                candidate = CandidateView(
-                    data=cached,
-                    z=z,
-                    c=c,
-                    t=t,
-                    quality_score=entropy,
-                    view_type="entropy",
-                    metadata={"entropy": entropy, "focus": focus_score},
-                )
-                self.best_entropy_per_channel[c] = (entropy, candidate)
+        if (
+            c not in self.best_entropy_per_channel
+            or entropy > self.best_entropy_per_channel[c][0]
+        ):
+            cached = _resize_to_cache(plane, self.cache_size)
+            candidate = CandidateView(
+                data=cached,
+                z=z,
+                c=c,
+                t=t,
+                quality_score=entropy,
+                view_type="entropy",
+                metadata={
+                    "entropy": entropy,
+                    "focus": focus_score,
+                    "coverage": coverage,
+                },
+            )
+            self.best_entropy_per_channel[c] = (entropy, candidate)
+
+    def _generate_iscc(self, view_data: np.ndarray) -> Optional[str]:
+        """Generate ISCC code for deduplication."""
+        try:
+            pixels = _prepare_for_iscc(view_data)
+            result = ic.gen_image_code_v0(pixels.tolist(), bits=256)
+            return result["iscc"]
+        except Exception:
+            return None
+
+    def _is_similar(self, code1: Optional[str], code2: Optional[str]) -> bool:
+        """Check if two ISCC codes are similar (Hamming distance <= 8)."""
+        if not code1 or not code2:
+            return False
+        try:
+            distance = ic.iscc_distance(code1, code2)
+            return distance <= 8
+        except Exception:
+            return False
+
+    def _create_composite(self) -> Optional[CandidateView]:
+        """Create RGB composite from best channels."""
+        if len(self.channel_planes) < 2:
+            return None
+
+        # Get up to 3 best channels
+        channels_sorted = sorted(
+            self.channel_planes.items(),
+            key=lambda x: self.best_focus_per_channel.get(x[0], (0, None))[0],
+            reverse=True,
+        )[:3]
+
+        if not channels_sorted:
+            return None
+
+        # Normalize and stack channels
+        normalized = []
+        for c_idx, plane in channels_sorted:
+            # Percentile normalization
+            p2, p98 = np.percentile(plane, [2, 98])
+            if p98 > p2:
+                norm = np.clip((plane - p2) / (p98 - p2), 0, 1)
+            else:
+                norm = np.zeros_like(plane, dtype=np.float32)
+            normalized.append((norm * 255).astype(np.uint8))
+
+        # Pad to 3 channels if needed
+        while len(normalized) < 3:
+            normalized.append(np.zeros_like(normalized[0]))
+
+        # Stack as RGB
+        composite = np.stack(normalized[:3], axis=-1)
+
+        # Calculate quality from grayscale version
+        gray = np.mean(composite, axis=-1).astype(np.uint8)
+        entropy = _calculate_entropy(gray)
+        coverage = _calculate_coverage(gray)
+
+        return CandidateView(
+            data=composite,
+            z=-1,  # Composite has no single Z
+            c=-1,  # Composite spans channels
+            t=0,
+            quality_score=entropy,
+            view_type="composite",
+            metadata={
+                "entropy": entropy,
+                "coverage": coverage,
+                "channels": [c for c, _ in channels_sorted],
+            },
+        )
 
     def select_final_views(self) -> List[CandidateView]:
-        """Select final representative views from candidates."""
-        selected = []
+        """Select final representative views with ISCC-based deduplication."""
+        candidates_pool = []
 
-        # Add best focus views
-        for _, (_, candidate) in sorted(self.best_focus_per_channel.items()):
-            if len(selected) < self.max_views:
-                selected.append(candidate)
+        # Create composite view first (highest priority)
+        composite = self._create_composite()
+        if (
+            composite and composite.quality_score >= 3.5
+        ):  # Lower threshold for composites
+            candidates_pool.append(composite)
+            logger.debug(
+                f"Added composite view (entropy={composite.quality_score:.2f})"
+            )
 
-        # Add best entropy views if different
-        for c, (_, candidate) in sorted(self.best_entropy_per_channel.items()):
-            if len(selected) < self.max_views:
-                # Check if not too similar to existing views
-                is_duplicate = False
-                for existing in selected:
-                    if existing.c == candidate.c and abs(existing.z - candidate.z) < 3:
-                        is_duplicate = True
-                        break
-                if not is_duplicate:
-                    selected.append(candidate)
+        # Add best focus views per channel
+        for c, (score, candidate) in sorted(self.best_focus_per_channel.items()):
+            candidates_pool.append(candidate)
+            logger.debug(
+                f"Added focus view C{c} Z{candidate.z} (entropy={candidate.quality_score:.2f})"
+            )
 
-        # Add middle views if needed
-        for candidate in self.candidates:
-            if candidate.view_type == "middle" and len(selected) < self.max_views:
-                is_duplicate = any(
-                    ex.c == candidate.c and abs(ex.z - candidate.z) < 3
-                    for ex in selected
+        # Add best entropy views if different Z from focus
+        for c, (score, candidate) in sorted(self.best_entropy_per_channel.items()):
+            # Check if different from focus view of same channel
+            focus_view = self.best_focus_per_channel.get(c, (0, None))[1]
+            if not focus_view or abs(candidate.z - focus_view.z) >= 5:
+                candidates_pool.append(candidate)
+                logger.debug(
+                    f"Added entropy view C{c} Z{candidate.z} (entropy={candidate.quality_score:.2f})"
                 )
-                if not is_duplicate:
-                    selected.append(candidate)
 
-        # Ensure we have at least 2 views for ISCC-MIXED
+        # Add middle plane fallback candidates
+        for candidate in self.candidates:
+            if candidate.view_type == "middle":
+                # Check if not already in pool
+                if not any(id(c) == id(candidate) for c in candidates_pool):
+                    candidates_pool.append(candidate)
+                    logger.debug(
+                        f"Added middle fallback view (entropy={candidate.quality_score:.2f})"
+                    )
+
+        # ISCC-based deduplication
+        selected = []
+        selected_iscc = []
+
+        for candidate in candidates_pool:
+            if len(selected) >= self.max_views:
+                break
+
+            # Generate ISCC for this candidate
+            if candidate.data.ndim == 3:
+                # Composite - use grayscale for comparison
+                gray = np.mean(candidate.data, axis=-1).astype(np.uint8)
+                iscc_code = self._generate_iscc(gray)
+            else:
+                iscc_code = self._generate_iscc(candidate.data)
+
+            # Check for similarity with already selected views
+            is_duplicate = False
+            for existing_iscc in selected_iscc:
+                if self._is_similar(iscc_code, existing_iscc):
+                    is_duplicate = True
+                    logger.debug(
+                        f"Skipped duplicate view: {candidate.view_type} C{candidate.c} Z{candidate.z}"
+                    )
+                    break
+
+            if not is_duplicate:
+                selected.append(candidate)
+                selected_iscc.append(iscc_code)
+
+        # Ensure minimum of 2 views - relax ISCC filtering if needed
         if len(selected) < 2:
-            # Add all candidates if not enough selected
-            selected_ids = {id(v) for v in selected}
-            for candidate in self.candidates:
-                if id(candidate) not in selected_ids and len(selected) < self.max_views:
+            logger.warning(
+                f"Only {len(selected)} unique view(s) after ISCC deduplication, relaxing constraints"
+            )
+            for candidate in candidates_pool:
+                if len(selected) >= self.max_views or len(selected) >= 2:
+                    break
+                if all(id(candidate) != id(s) for s in selected):
                     selected.append(candidate)
-                    selected_ids.add(id(candidate))
+                    logger.debug(
+                        f"Added fallback view: {candidate.view_type} C{candidate.c} Z{candidate.z}"
+                    )
 
-            # If still not enough, add any remaining from tracking dicts
-            if len(selected) < 2:
-                for _, (_, candidate) in self.best_focus_per_channel.items():
-                    if (
-                        id(candidate) not in selected_ids
-                        and len(selected) < self.max_views
-                    ):
-                        selected.append(candidate)
-                        selected_ids.add(id(candidate))
+        logger.info(
+            f"Selected {len(selected)} final views from {len(candidates_pool)} candidates"
+        )
 
-        # Sort by channel then quality
-        selected.sort(key=lambda v: (v.c, -v.quality_score))
-
-        return selected[: self.max_views]
+        return selected
 
 
 def generate_biocode(
@@ -373,8 +535,13 @@ def generate_biocode(
         image_codes = []
 
         for view_idx, view in enumerate(selected_views):
-            # Prepare for ISCC
-            pixels = _prepare_for_iscc(view.data)
+            # Prepare for ISCC (handle both grayscale and RGB)
+            if view.data.ndim == 3:
+                # Composite RGB - convert to grayscale for ISCC
+                gray = np.mean(view.data, axis=-1).astype(np.uint8)
+                pixels = _prepare_for_iscc(gray)
+            else:
+                pixels = _prepare_for_iscc(view.data)
 
             # Generate ISCC-IMAGE code
             img_code_result = ic.gen_image_code_v0(pixels.tolist(), bits=256)
@@ -382,12 +549,23 @@ def generate_biocode(
             image_codes.append(img_code)
 
             # Create view ID
-            view_id = f"{image_path.stem}_s{scene_idx}_c{view.c}_z{view.z}_t{view.t}_{view.view_type}"
+            if view.view_type == "composite":
+                channels_str = "_".join(
+                    str(c) for c in view.metadata.get("channels", [])
+                )
+                view_id = f"{image_path.stem}_s{scene_idx}_composite_c{channels_str}_t{view.t}"
+            else:
+                view_id = f"{image_path.stem}_s{scene_idx}_c{view.c}_z{view.z}_t{view.t}_{view.view_type}"
 
             # Save view if output directory specified
             if output_dir:
                 view_path = output_dir / f"{view_id}.png"
-                pil_img = Image.fromarray(view.data, mode="L")
+                if view.data.ndim == 3:
+                    # RGB composite
+                    pil_img = Image.fromarray(view.data, mode="RGB")
+                else:
+                    # Grayscale
+                    pil_img = Image.fromarray(view.data, mode="L")
                 pil_img.save(view_path)
                 logger.debug(f"Saved view: {view_path}")
 
@@ -407,13 +585,20 @@ def generate_biocode(
         if len(image_codes) >= 2:
             mixed_result = ic.gen_mixed_code_v0(image_codes, bits=256)
             iscc_mixed_code = mixed_result["iscc"]
+        elif len(image_codes) == 1:
+            # Duplicate the single code to generate ISCC-MIXED
+            logger.info(
+                f"Scene {scene_idx}: Only 1 view extracted, duplicating code for ISCC-MIXED"
+            )
+            mixed_result = ic.gen_mixed_code_v0(
+                [image_codes[0], image_codes[0]], bits=256
+            )
+            iscc_mixed_code = mixed_result["iscc"]
         else:
             iscc_mixed_code = None
-            if image_codes:
-                logger.warning(
-                    f"Scene {scene_idx}: Only {len(image_codes)} view(s) extracted, "
-                    "ISCC-MIXED requires at least 2 codes"
-                )
+            logger.warning(
+                f"Scene {scene_idx}: No views extracted, cannot generate ISCC-MIXED"
+            )
 
         # Create fingerprint
         fingerprint = SceneFingerprint(
