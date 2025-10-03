@@ -174,8 +174,9 @@ def pixhash_omero(server_url: str, image_id: int) -> List[str]:
         for img in images:
             logger.info(f"Processing image: {img.getName()} (ID: {img.getId()})")
 
-            # Get pixels object
+            # Get pixels object and ID
             pixels = img.getPrimaryPixels()
+            pixels_id = pixels.getId()
 
             # Get dimensions
             size_t = img.getSizeT()
@@ -188,41 +189,53 @@ def pixhash_omero(server_url: str, image_id: int) -> List[str]:
                 f"Image dimensions: T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}"
             )
 
-            # Initialize hasher for this image
-            hasher = iscc_sum.IsccSumProcessor()
+            # Get pixel data type mapping
+            dtype_str = str(pixels.getPixelsType().getValue())
+            dtype_map = {
+                "uint8": np.uint8,
+                "uint16": np.uint16,
+                "uint32": np.uint32,
+                "int8": np.int8,
+                "int16": np.int16,
+                "int32": np.int32,
+                "float": np.float32,
+                "double": np.float64,
+            }
+            np_dtype = dtype_map.get(dtype_str, np.uint8)
 
-            # Process planes in Z→C→T order (OMERO XYZCT storage order)
-            for z in range(size_z):
-                for c in range(size_c):
-                    for t in range(size_t):
-                        # Get 2D plane using OMERO's getPrimaryPixels
-                        plane = pixels.getPlane(z, c, t)
+            # Create RawPixelsStore service for proper plane access
+            rps = conn.c.sf.createRawPixelsStore()
 
-                        # Convert to numpy array with appropriate dtype
-                        dtype_str = str(pixels.getPixelsType().getValue())
-                        dtype_map = {
-                            "uint8": np.uint8,
-                            "uint16": np.uint16,
-                            "uint32": np.uint32,
-                            "int8": np.int8,
-                            "int16": np.int16,
-                            "int32": np.int32,
-                            "float": np.float32,
-                            "double": np.float64,
-                        }
+            try:
+                # Set the pixels ID to access the pixel data
+                rps.setPixelsId(pixels_id, True)  # True = bypass cache
 
-                        np_dtype = dtype_map.get(dtype_str, np.uint8)
-                        plane_array = np.frombuffer(plane, dtype=np_dtype)
-                        plane_array = plane_array.reshape(size_y, size_x)
+                # Initialize hasher for this image
+                hasher = iscc_sum.IsccSumProcessor()
 
-                        # Convert to canonical bytes and update hash
-                        canonical_bytes = _plane_to_canonical_bytes(plane_array)
-                        hasher.update(canonical_bytes)
+                # Process planes in Z→C→T order (IMAGEWALK specification)
+                for z in range(size_z):
+                    for c in range(size_c):
+                        for t in range(size_t):
+                            # Get 2D plane using RawPixelsStore (returns full plane data)
+                            plane_bytes = rps.getPlane(z, c, t)
 
-            # Get final hash for this image
-            image_hash = hasher.result(wide=True, add_units=False).iscc
-            hashes.append(image_hash)
-            logger.info(f"Image {img.getId()}: {image_hash}")
+                            # Convert to numpy array
+                            plane_array = np.frombuffer(plane_bytes, dtype=np_dtype)
+                            plane_array = plane_array.reshape(size_y, size_x)
+
+                            # Convert to canonical bytes and update hash
+                            canonical_bytes = _plane_to_canonical_bytes(plane_array)
+                            hasher.update(canonical_bytes)
+
+                # Get final hash for this image
+                image_hash = hasher.result(wide=True, add_units=False).iscc
+                hashes.append(image_hash)
+                logger.info(f"Image {img.getId()}: {image_hash}")
+
+            finally:
+                # Always close the RawPixelsStore
+                rps.close()
 
         return hashes
 
