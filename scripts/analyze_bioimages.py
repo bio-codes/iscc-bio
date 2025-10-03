@@ -8,13 +8,12 @@ dimensions, and properties for ISCC processing planning.
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Tuple
 import psutil
 import numpy as np
 
 try:
     from bioio import BioImage
-    from bioio_base import types
 except ImportError:
     print("Error: bioio not installed. Run 'uv sync --dev' to install dependencies.")
     sys.exit(1)
@@ -90,7 +89,7 @@ def analyze_bioimage(file_path: str, extract_slices: bool = True) -> Dict[str, A
         # Get physical pixel sizes
         if bio_img.physical_pixel_sizes:
             pps = bio_img.physical_pixel_sizes
-            print(f"Physical pixel sizes:")
+            print("Physical pixel sizes:")
             if pps.Z is not None:
                 print(f"  Z: {pps.Z:.4f} {pps.Z}")
             if pps.Y is not None:
@@ -232,7 +231,7 @@ def main():
 
     results = []
 
-    print(f"Starting bioimage analysis...")
+    print("Starting bioimage analysis...")
     print(f"Available memory: {psutil.virtual_memory().available / (1024**3):.2f} GB")
 
     for filename in files_to_analyze:

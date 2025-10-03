@@ -70,7 +70,7 @@ def process_all_bioimages(directory: Path):
                 failed_files.append(filepath.name)
 
         except subprocess.TimeoutExpired:
-            print(f"✗ Timeout: Processing took longer than 2 minutes")
+            print("✗ Timeout: Processing took longer than 2 minutes")
             failed_files.append(filepath.name)
         except Exception as e:
             print(f"✗ Error: {e}")

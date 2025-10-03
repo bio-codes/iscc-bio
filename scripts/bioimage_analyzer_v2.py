@@ -68,7 +68,7 @@ def analyze_bioimage_simple(file_path: str) -> Dict[str, Any]:
         # Physical pixel sizes
         if bio_img.physical_pixel_sizes:
             pps = bio_img.physical_pixel_sizes
-            print(f"Physical pixel sizes:")
+            print("Physical pixel sizes:")
             if hasattr(pps, "Z") and pps.Z is not None:
                 print(f"  Z: {pps.Z:.4f}")
             if hasattr(pps, "Y") and pps.Y is not None:
@@ -188,7 +188,7 @@ def main():
         "Comp.tif",  # ~540MB - Large 2D composite
     ]
 
-    print(f"Starting bioimage analysis...")
+    print("Starting bioimage analysis...")
     print(f"Available memory: {psutil.virtual_memory().available / (1024**3):.2f} GB")
 
     results = []

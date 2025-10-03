@@ -40,7 +40,7 @@ def extract_2d_slices_for_iscc(
     shape = bio_img.shape
     dims = str(bio_img.dims)
 
-    print(f"  Extracting 2D slices for ISCC processing...")
+    print("  Extracting 2D slices for ISCC processing...")
     print(f"  Image shape: {shape}, dims: {dims}")
 
     try:
@@ -172,7 +172,7 @@ def analyze_iscc_requirements(
     """
     Analyze requirements for ISCC Mixed-Code generation.
     """
-    print(f"\n  ISCC Processing Analysis:")
+    print("\n  ISCC Processing Analysis:")
 
     analysis = {
         "total_2d_images": 0,
@@ -324,12 +324,12 @@ def main():
         print(f"  - Memory efficient: {iscc['memory_efficient']}")
         print(f"  - File size: {format_size(result['file_size'])}")
 
-    print(f"\nRECOMMENDATIONS FOR ISCC IMPLEMENTATION:")
-    print(f"1. Process bioimage files as collections of 2D slices")
-    print(f"2. Generate individual ISCC Image-Codes for each 2D slice")
-    print(f"3. Combine Image-Codes into ISCC Mixed-Code for complete bioimage")
-    print(f"4. Use lazy loading and chunked processing for large files")
-    print(f"5. Consider parallel processing for multi-channel/Z-stack data")
+    print("\nRECOMMENDATIONS FOR ISCC IMPLEMENTATION:")
+    print("1. Process bioimage files as collections of 2D slices")
+    print("2. Generate individual ISCC Image-Codes for each 2D slice")
+    print("3. Combine Image-Codes into ISCC Mixed-Code for complete bioimage")
+    print("4. Use lazy loading and chunked processing for large files")
+    print("5. Consider parallel processing for multi-channel/Z-stack data")
 
 
 if __name__ == "__main__":

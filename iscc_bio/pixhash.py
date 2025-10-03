@@ -6,9 +6,8 @@ All implementations produce identical hashes for the same image data.
 """
 
 import iscc_sum
-import struct
 from pathlib import Path
-from typing import List, Union
+from typing import List
 import numpy as np
 import logging
 
@@ -177,7 +176,6 @@ def pixhash_omero(server_url: str, image_id: int) -> List[str]:
 
             # Get pixels object
             pixels = img.getPrimaryPixels()
-            pixels_id = pixels.getId()
 
             # Get dimensions
             size_t = img.getSizeT()

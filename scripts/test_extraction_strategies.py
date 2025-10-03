@@ -5,7 +5,6 @@ Quick test script to compare different extraction strategies for ISCC generation
 import sys
 from pathlib import Path
 from bioio import BioImage
-import numpy as np
 
 
 def count_views_by_strategy(filepath: str):

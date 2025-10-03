@@ -289,10 +289,6 @@ def extract_views(
 
     views = []
 
-    # Determine sampling parameters based on dimensions
-    t_samples = min(3, dims["T"]) if dims["T"] > 1 else 1  # First, middle, last
-    c_samples = min(3, dims["C"]) if dims["C"] > 1 else 1  # Up to 3 channels
-
     # Sample timepoints
     if dims["T"] > 1:
         t_indices = (

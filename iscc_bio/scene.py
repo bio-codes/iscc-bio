@@ -42,11 +42,11 @@ def extract_scenes(
         # Provide helpful error messages for unsupported formats
         if ".ims" in str(image_path).lower():
             logger.error(
-                f"IMS format not supported. Install bioio-bioformats and Java: pip install bioio-bioformats"
+                "IMS format not supported. Install bioio-bioformats and Java: pip install bioio-bioformats"
             )
         elif ".oir" in str(image_path).lower():
             logger.error(
-                f"OIR format not supported. Install bioio-bioformats and Java: pip install bioio-bioformats"
+                "OIR format not supported. Install bioio-bioformats and Java: pip install bioio-bioformats"
             )
         raise e
 

@@ -7,7 +7,7 @@ import logging
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from iscc_bio.views import extract_views, views_to_thumbnails, ViewInfo
+from iscc_bio.views import extract_views, views_to_thumbnails
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -127,7 +127,10 @@ def test_memory_efficiency():
 def test_omero_compatibility():
     """Test OMERO compatibility (requires OMERO connection)."""
     try:
-        from omero.gateway import BlitzGateway
+        import importlib.util
+
+        if importlib.util.find_spec("omero") is None:
+            raise ImportError
     except ImportError:
         logger.info("OMERO Python not installed, skipping OMERO test")
         return

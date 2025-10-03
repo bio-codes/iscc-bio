@@ -4,9 +4,7 @@ Simple Bioimage Test Script
 Direct testing of bioio functionality and data access.
 """
 
-import os
 from pathlib import Path
-import numpy as np
 from bioio import BioImage
 
 
@@ -24,7 +22,7 @@ def test_simple_access(file_path: str):
         print(f"Data type: {bio_img.dtype}")
 
         # Try to access raw data directly
-        print(f"\nTrying direct data access...")
+        print("\nTrying direct data access...")
 
         # Method 1: Direct data property
         try:
@@ -54,7 +52,7 @@ def test_simple_access(file_path: str):
 
         # Method 2: Using get_image_data
         try:
-            print(f"\nTrying get_image_data...")
+            print("\nTrying get_image_data...")
             # Try to get just YX dimensions
             img_yx = bio_img.get_image_data("YX")
             print(f"  YX data shape: {img_yx.shape}")
@@ -67,7 +65,7 @@ def test_simple_access(file_path: str):
 
         # Method 3: Try different dimension strings
         try:
-            print(f"\nTrying alternative dimension access...")
+            print("\nTrying alternative dimension access...")
             img_cyx = bio_img.get_image_data("CYX")
             print(f"  CYX data shape: {img_cyx.shape}")
 

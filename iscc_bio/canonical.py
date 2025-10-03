@@ -40,7 +40,7 @@ format-agnostic way to generate consistent hashes from bioimage data.
 import hashlib
 import struct
 from pathlib import Path
-from typing import Optional, Union, Tuple
+from typing import Union, Tuple
 import numpy as np
 from bioio import BioImage
 import logging
@@ -392,12 +392,12 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
     bioio_plane_bytes = plane_to_canonical_bytes(bioio_array)
     bioio_plane_sha1 = hashlib.sha1(bioio_plane_bytes).hexdigest()
 
-    print(f"\nSHA1 of first plane (C=0):")
+    print("\nSHA1 of first plane (C=0):")
     print(f"OMERO: {omero_plane_sha1}")
     print(f"bioio: {bioio_plane_sha1}")
 
     # Check second channel
-    print(f"\nChecking second channel (C=1)...")
+    print("\nChecking second channel (C=1)...")
     raw_store = conn.c.sf.createRawPixelsStore()
     try:
         raw_store.setPixelsId(pixels.getId(), False)
@@ -411,19 +411,19 @@ def debug_pixel_comparison(conn, image_id: int, test_file: Path):
         bioio_c1_bytes = plane_to_canonical_bytes(bioio_c1_array)
         bioio_c1_sha1 = hashlib.sha1(bioio_c1_bytes).hexdigest()
 
-        print(f"SHA1 of second plane (C=1):")
+        print("SHA1 of second plane (C=1):")
         print(f"OMERO: {omero_c1_sha1}")
         print(f"bioio: {bioio_c1_sha1}")
 
         # Check different plane orderings
-        print(f"\nTesting different plane concatenation orders:")
+        print("\nTesting different plane concatenation orders:")
         print(f"C0→C1 (CZT): {hashlib.sha1(omero_plane + omero_plane_c1).hexdigest()}")
         print(
             f"C1→C0 (reverse): {hashlib.sha1(omero_plane_c1 + omero_plane).hexdigest()}"
         )
 
         # Try getting the entire pixel buffer at once using getHypercube
-        print(f"\nTrying to get entire pixel buffer via getHypercube...")
+        print("\nTrying to get entire pixel buffer via getHypercube...")
         try:
             # Get all data as hypercube (all Z, C, T)
             hypercube = raw_store.getHypercube(
@@ -453,7 +453,6 @@ def verify_bioio_omero_match():
 
     Tests with the xyc_tiles.czi file and its OMERO counterpart.
     """
-    import omero
     from omero.gateway import BlitzGateway
 
     # Test file

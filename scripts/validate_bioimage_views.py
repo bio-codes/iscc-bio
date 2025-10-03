@@ -11,7 +11,6 @@ from pathlib import Path
 import numpy as np
 from bioio import BioImage
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from typing import List, Dict, Any
 import warnings
 
@@ -148,7 +147,7 @@ def extract_best_focus_views(bio_img: BioImage) -> List[Dict[str, Any]]:
     if bio_img.dims.Z <= 1:
         return views
 
-    print(f"  Finding best focus planes...")
+    print("  Finding best focus planes...")
 
     for t in range(bio_img.dims.T):
         for c in range(bio_img.dims.C):
@@ -188,7 +187,7 @@ def extract_sample_planes(
     """Extract sample individual planes for inspection."""
     views = []
 
-    print(f"  Extracting sample planes...")
+    print("  Extracting sample planes...")
 
     # Calculate sampling interval
     z_samples = min(max_samples, bio_img.dims.Z)
@@ -334,7 +333,7 @@ def display_views(views: List[Dict[str, Any]], save_path: Path = None):
 
     # Print summary
     print(f"\n{'=' * 60}")
-    print(f"EXTRACTION SUMMARY")
+    print("EXTRACTION SUMMARY")
     print(f"{'=' * 60}")
     for view_type, type_views in view_types.items():
         print(f"{view_type:15} : {len(type_views)} views")
@@ -343,7 +342,7 @@ def display_views(views: List[Dict[str, Any]], save_path: Path = None):
     print(f"{'=' * 60}")
 
     print(f"\nThese {total_views} views would each generate an ISCC Image-Code,")
-    print(f"which would be combined into a single Mixed-Code for the bioimage.")
+    print("which would be combined into a single Mixed-Code for the bioimage.")
 
 
 def main():
@@ -397,7 +396,7 @@ Examples:
         bio_img = BioImage(filepath)
 
         # Print metadata
-        print(f"\nImage Information:")
+        print("\nImage Information:")
         print(f"  Format: {filepath.suffix}")
         print(f"  Dimensions: {bio_img.dims.order}")
         print(f"  Shape: {bio_img.shape}")
