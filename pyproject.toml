@@ -16,6 +16,28 @@ dependencies = [
     "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux'",
     "omero-py>=5.21.1",
     "ome-zarr>=0.12.2",
+    "bioio-czi>=2.4.0",
+    "bioio-ome-tiff>=1.4.0",
+    "bioio-ome-zarr>=2.3.0",
+    "bioio-dv>=1.2.0",
+    "bioio-imageio>=1.3.0",
+    "bioio-lif>=1.4.1",
+    "bioio-nd2>=1.5.0",
+    "bioio-tifffile>=1.3.0",
+    "bioio-tiff-glob>=1.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "poethepoet>=0.25.0",
+    "pre-commit>=2.20.0",
+    "mkdocs-material>=9.6.14",
+    "mkdocs-glightbox>=0.4.0",
+    "mdformat>=0.7.22",
+    "mdformat-mkdocs>=4.3.0",
+    "mdformat-footnote>=0.1.1",
+    "mdformat-tables>=1.0.0",
+    "mdformat-gfm-alerts>=2.0.0",
 ]
 
 [project.scripts]
@@ -31,15 +53,12 @@ packages = ["iscc_bio"]
 [tool.uv]
 package = true
 
-[dependency-groups]
-dev = [
-    "bioio-czi>=2.4.0",
-    "bioio-ome-tiff>=1.4.0",
-    "bioio-ome-zarr>=2.3.0",
-    "bioio-dv>=1.2.0",
-    "bioio-imageio>=1.3.0",
-    "bioio-lif>=1.4.1",
-    "bioio-nd2>=1.5.0",
-#    "bioio-tifffile>=1.3.0",
-    "bioio-tiff-glob>=1.2.0",
-]
+[tool.poe.tasks]
+# Documentation tasks
+docs-build = { script = "scripts.build_docs:main", help = "Copy README.md to /docs" }
+# Fromatting
+format-md = { shell = "uv run mdformat --end-of-line lf --wrap 112 --number *.md docs", help = "Format markdown files" }
+format-code = { shell = "uv run ruff format .", help = "Format code files" }
+format = { sequence = ["format-code", "format-md"], help = "Format all files" }
+# All-in-one command
+all = ["docs-build", "format"]
