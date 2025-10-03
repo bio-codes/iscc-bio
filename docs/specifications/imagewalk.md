@@ -84,8 +84,8 @@ graph TD
     A[Multi-dimensional Bioimage] --> B[For Each Scene/Series]
     B --> C[Identify Dimensions T,C,Z,Y,X]
     C --> D[Initialize Hash Processor]
-    D --> E[Iterate: Z � C � T]
-    E --> F[Extract 2D Plane Y�X]
+    D --> E[Iterate: Z → C → T]
+    E --> F[Extract 2D Plane Y×X]
     F --> G[Flatten Row-Major Y,X]
     G --> H[Convert to Big-Endian Bytes]
     H --> I[Feed to Hash Processor]
@@ -140,7 +140,7 @@ When a dimension is absent:
 
 !!! tip "Quick Reference"
 
-    Traverse planes in Z�C�T order: outermost Z, middle C, innermost T
+    Traverse planes in Z→C→T order: outermost Z, middle C, innermost T
 
 Implementations **MUST** traverse planes using nested loops in this exact order:
 
@@ -169,11 +169,11 @@ Plane 11: z=1, c=2, t=0
 Plane 12: z=1, c=2, t=1
 ```
 
-Total planes: 2 � 3 � 2 = 12
+Total planes: 2 × 3 × 2 = 12
 
 !!! warning
 
-    The traversal order is Z�C�T, not the dimension storage order. This order is independent of how the source
+    The traversal order is Z→C→T, not the dimension storage order. This order is independent of how the source
     format stores pixel data internally.
 
 ### 4.4 Canonical Byte Conversion
@@ -197,7 +197,7 @@ Flatten the 2D array using row-major (C-order) traversal:
 - X dimension varies fastest (inner loop)
 - Linearization order: (0,0), (0,1), ..., (0,X-1), (1,0), (1,1), ..., (Y-1,X-1)
 
-This produces a 1D array of size Y � X.
+This produces a 1D array of size Y × X.
 
 #### Step 3: Encode as Big-Endian Bytes
 
@@ -210,7 +210,7 @@ Convert pixel values to big-endian byte sequences:
 
 **Rationale**: Big-endian encoding ensures cross-platform reproducibility regardless of host system byte order.
 
-#### Example: 2�2 uint16 Plane
+#### Example: 2×2 uint16 Plane
 
 ```yaml
 Input plane (row-major notation):
@@ -222,7 +222,7 @@ After flattening: [256, 512, 768, 1024]
 Canonical bytes (big-endian uint16):
   0x01 0x00  0x02 0x00  0x03 0x00  0x04 0x00
 
-Total: 8 bytes (4 pixels � 2 bytes per pixel)
+Total: 8 bytes (4 pixels × 2 bytes per pixel)
 ```
 
 ### 4.5 Hash Processing
@@ -252,9 +252,9 @@ Structure:
 
 Processing:
   - Dimension sizes: size_z=1, size_c=1, size_t=1
-  - Total planes: 1 � 1 � 1 = 1
+  - Total planes: 1 × 1 × 1 = 1
   - Single plane at (0, 0, 0, :, :)
-  - Flatten: 512 � 512 = 262,144 pixels
+  - Flatten: 512 × 512 = 262,144 pixels
   - Convert: 262,144 bytes (uint8 is single byte)
   - Feed to hash processor
   - Finalize hash
@@ -273,10 +273,10 @@ Structure:
 
 Processing:
   - Dimension sizes: size_z=1, size_c=3, size_t=10
-  - Total planes: 1 � 3 � 10 = 30
-  - Traversal order: z=0, c=0�2, t=0�9
-  - Each plane: 256 � 256 = 65,536 pixels
-  - Each plane: 131,072 bytes (65,536 � 2 bytes)
+  - Total planes: 1 × 3 × 10 = 30
+  - Traversal order: z=0, c=0–2, t=0–9
+  - Each plane: 256 × 256 = 65,536 pixels
+  - Each plane: 131,072 bytes (65,536 × 2 bytes)
   - Feed 30 planes to hash processor
   - Finalize hash
 
@@ -294,10 +294,10 @@ Structure:
 
 Processing (per scene):
   - Dimension sizes: size_z=20, size_c=2, size_t=1
-  - Total planes: 20 � 2 � 1 = 40
-  - Traversal order: z=0�19, c=0�1, t=0
-  - Each plane: 1024 � 1024 = 1,048,576 pixels
-  - Each plane: 2,097,152 bytes (1,048,576 � 2 bytes)
+  - Total planes: 20 × 2 × 1 = 40
+  - Traversal order: z=0–19, c=0–1, t=0
+  - Each plane: 1024 × 1024 = 1,048,576 pixels
+  - Each plane: 2,097,152 bytes (1,048,576 × 2 bytes)
   - Feed 40 planes to hash processor
   - Finalize hash
   - Repeat for scenes 1 and 2
@@ -401,7 +401,7 @@ Values (row-major): [[256, 512], [768, 1024]]
 0x01 0x00  0x02 0x00  0x03 0x00  0x04 0x00
 ```
 
-**Explanation**: Big-endian encoding. 256 = 0x0100 � 0x01 0x00 (MSB first)
+**Explanation**: Big-endian encoding. 256 = 0x0100 → 0x01 0x00 (MSB first)
 
 #### Test Case 3: Float32 Plane
 
@@ -491,7 +491,7 @@ An implementation conforms to this specification if it satisfies all of the foll
 2. **Scene ordering**: Processes scenes/series in ascending numerical order (0, 1, 2, ...) and returns hashes in
     the same order
 
-3. **Plane traversal**: Iterates planes in Z�C�T order (outermost to innermost)
+3. **Plane traversal**: Iterates planes in Z→C→T order (outermost to innermost)
 
 4. **Row-major flattening**: Flattens 2D planes in row-major order (Y varies slowly, X varies fast)
 
