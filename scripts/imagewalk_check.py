@@ -114,6 +114,12 @@ def calculate_imagewalk_sha1(server_url, image_id, username, password):
             logger.info(f"\nCalculated SHA1: {calculated_sha1}")
 
             # Also get the server's calculateMessageDigest if available
+            # NOTE: calculateMessageDigest() executes SERVER-SIDE on the OMERO server.
+            # The RawPixelsStore (rps) is a proxy (RawPixelsStorePrx) that sends a
+            # RawAccessRequest("checksum") to the server, which calculates the SHA-1
+            # hash without transferring pixel data to the client. This is the current
+            # live calculation vs the stored sha1 value which may be incorrect due to
+            # a possible OMERO bug. (Verified: ome/openmicroscopy & ome/omero-py codebases)
             server_calculated_sha1 = None
             try:
                 digest_bytes = rps.calculateMessageDigest()
