@@ -25,6 +25,8 @@ dependencies = [
     "bioio-nd2>=1.5.0",
     "bioio-tifffile>=1.3.0",
     "bioio-tiff-glob>=1.2.0",
+    "bioio-bioformats>=1.3.0",
+    "loguru>=0.7.3",
 ]
 
 [dependency-groups]
