@@ -9,11 +9,11 @@ import iscc_sum
 from pathlib import Path
 from typing import List
 import numpy as np
-import logging
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 # Suppress noisy logging from OMERO libraries
+import logging
+
 logging.getLogger("omero").setLevel(logging.WARNING)
 logging.getLogger("omero.gateway").setLevel(logging.WARNING)
 
@@ -66,6 +66,10 @@ def pixhash_bioio(image_path: str) -> List[str]:
 
     hashes = []
     img = BioImage(image_path)
+
+    logger.debug(
+        f"Using {img._plugin.entrypoint.name} reader for file: {image_path.name}"
+    )
 
     # Process each scene
     num_scenes = len(img.scenes)
