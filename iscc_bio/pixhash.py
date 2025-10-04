@@ -11,12 +11,6 @@ from typing import List
 import numpy as np
 from loguru import logger
 
-# Suppress noisy logging from OMERO libraries
-import logging
-
-logging.getLogger("omero").setLevel(logging.WARNING)
-logging.getLogger("omero.gateway").setLevel(logging.WARNING)
-
 
 def _plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
     """Convert a 2D plane to canonical byte representation.
@@ -64,21 +58,23 @@ def pixhash_bioio(image_path: str) -> List[str]:
     if not image_path.exists():
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
+    logger.debug(f"{image_path.name} - using bioio implementation")
+
     hashes = []
     img = BioImage(image_path)
 
-    logger.debug(
-        f"Using {img._plugin.entrypoint.name} reader for file: {image_path.name}"
-    )
+    logger.debug(f"{image_path.name} - using {img._plugin.entrypoint.name} reader")
 
     # Process each scene
     num_scenes = len(img.scenes)
-    logger.info(f"Processing {num_scenes} scene(s) from {image_path.name}")
+    logger.debug(f"{image_path.name} - processing {num_scenes} scene(s)")
 
     for scene_idx in range(num_scenes):
         if num_scenes > 1:
             img.set_scene(scene_idx)
-            logger.info(f"Processing scene {scene_idx}: {img.scenes[scene_idx]}")
+            logger.debug(
+                f"{image_path.name} - processing scene {scene_idx}: {img.scenes[scene_idx]}"
+            )
 
         # Get dimensions
         dims = img.dims
@@ -100,7 +96,7 @@ def pixhash_bioio(image_path: str) -> List[str]:
         size_x = shape[x_idx]
 
         logger.debug(
-            f"Scene {scene_idx} dimensions: T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}"
+            f"{image_path.name} - scene {scene_idx}: T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}"
         )
 
         # Initialize hasher for this scene
@@ -129,7 +125,7 @@ def pixhash_bioio(image_path: str) -> List[str]:
         # Get final hash for this scene
         scene_hash = hasher.result(wide=True, add_units=False).iscc
         hashes.append(scene_hash)
-        logger.info(f"Scene {scene_idx}: {scene_hash}")
+        logger.debug(f"{image_path.name} - scene {scene_idx}: {scene_hash}")
 
     return hashes
 

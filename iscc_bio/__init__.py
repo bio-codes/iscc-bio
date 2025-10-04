@@ -1,6 +1,18 @@
 import os
+import sys
 from .utils import find_java_home
 from loguru import logger
+
+# Configure loguru format to show module:line instead of full path
+logger.remove()  # Remove default handler
+logger.add(
+    sys.stderr,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{module}:{line}</cyan> - <level>{message}</level>",
+)
+
+# Suppress noisy logging from third-party libraries using loguru
+logger.disable("omero")
+logger.disable("omero.gateway")
 
 if not os.environ.get("JAVA_HOME"):
     java_home = find_java_home()
