@@ -11,7 +11,7 @@ import bioio
 
 
 def iter_planes_bioio(image):
-    # type: (bioio.ImageLike) -> Generator
+    # type: (bioio.ImageLike) -> Generator[Plane, None, None]
     """Iterate over 2D planes in a bioimage following IMAGEWALK Z→C→T traversal order.
 
     Processes each scene independently and yields planes in deterministic order:
