@@ -5,7 +5,6 @@ description = "BioCodes - ISCC Processing for BioImaging Data"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "bioio>=3.0.0",
     "iscc-core>=1.2.2",
     "iscc-sum>=0.1.0",
     "pillow>=10.0.0",
@@ -16,6 +15,8 @@ dependencies = [
     "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux'",
     "omero-py>=5.21.1",
     "ome-zarr>=0.12.2",
+    "bioio>=3.0.0",
+    "bioio-bioformats>=1.3.0",  # Install bioformats FIRST so native readers get higher priority
     "bioio-czi>=2.4.0",
     "bioio-ome-tiff>=1.4.0",
     "bioio-ome-zarr>=2.3.0",
@@ -25,7 +26,6 @@ dependencies = [
     "bioio-nd2>=1.5.0",
     "bioio-tifffile>=1.3.0",
     "bioio-tiff-glob>=1.2.0",
-    "bioio-bioformats>=1.3.0",
     "loguru>=0.7.3",
 ]
 
