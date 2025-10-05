@@ -119,40 +119,50 @@ def iter_planes_blitz_image(conn, image, scene_idx=0):
 
 if __name__ == "__main__":
     import sys
+    import argparse
 
-    if len(sys.argv) < 3:
-        print(
-            "Usage: python -m iscc_bio.imagewalk.iw_blitz <server_url> <image_id|fileset_id> [--fileset]"
-        )
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Iterate over planes in OMERO images/filesets following IMAGEWALK traversal order"
+    )
+    parser.add_argument("server_url", help="OMERO server URL")
+    parser.add_argument("--user", default="root", help="OMERO username (default: root)")
+    parser.add_argument(
+        "--pwd", default="omero", help="OMERO password (default: omero)"
+    )
+    parser.add_argument("--iid", type=int, help="OMERO Image ID to process")
+    parser.add_argument("--fid", type=int, help="OMERO Fileset ID to process")
+
+    args = parser.parse_args()
+
+    # Validate that either --iid or --fid is provided
+    if not args.iid and not args.fid:
+        parser.error("Either --iid (Image ID) or --fid (Fileset ID) must be provided")
+    if args.iid and args.fid:
+        parser.error("Cannot specify both --iid and --fid, choose one")
 
     from omero.gateway import BlitzGateway
-
-    server_url = sys.argv[1]
-    object_id = int(sys.argv[2])
-    use_fileset = "--fileset" in sys.argv
 
     # Configure logger to show debug messages
     logger.remove()
     logger.add(sys.stderr, level="DEBUG")
 
-    # Connect to OMERO (using hardcoded credentials for testing)
-    logger.info(f"Connecting to OMERO server: {server_url}")
-    conn = BlitzGateway("root", "omero", host=server_url, port=4064)
+    # Connect to OMERO
+    logger.info(f"Connecting to OMERO server: {args.server_url}")
+    conn = BlitzGateway(args.user, args.pwd, host=args.server_url, port=4064)
 
     if not conn.connect():
-        logger.error(f"Failed to connect to OMERO server: {server_url}")
+        logger.error(f"Failed to connect to OMERO server: {args.server_url}")
         sys.exit(1)
 
     try:
         plane_count = 0
 
-        if use_fileset:
+        if args.fid:
             # Process entire fileset
-            logger.info(f"Processing OMERO fileset: {object_id}")
-            fileset = conn.getObject("Fileset", object_id)
+            logger.info(f"Processing OMERO fileset: {args.fid}")
+            fileset = conn.getObject("Fileset", args.fid)
             if not fileset:
-                logger.error(f"Fileset {object_id} not found")
+                logger.error(f"Fileset {args.fid} not found")
                 sys.exit(1)
 
             for plane in iter_planes_blitz_fileset(conn, fileset):
@@ -164,10 +174,10 @@ if __name__ == "__main__":
                 )
         else:
             # Process single image
-            logger.info(f"Processing OMERO image: {object_id}")
-            image = conn.getObject("Image", object_id)
+            logger.info(f"Processing OMERO image: {args.iid}")
+            image = conn.getObject("Image", args.iid)
             if not image:
-                logger.error(f"Image {object_id} not found")
+                logger.error(f"Image {args.iid} not found")
                 sys.exit(1)
 
             for plane in iter_planes_blitz_image(conn, image):
