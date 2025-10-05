@@ -978,6 +978,17 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "bioio" },
+    { name = "click" },
+    { name = "iscc-core" },
+    { name = "iscc-sum" },
+    { name = "loguru" },
+    { name = "numpy" },
+    { name = "ome-zarr" },
+    { name = "pillow" },
+]
+
+[package.optional-dependencies]
+all = [
     { name = "bioio-bioformats" },
     { name = "bioio-czi" },
     { name = "bioio-dv" },
@@ -988,17 +999,58 @@ dependencies = [
     { name = "bioio-ome-zarr" },
     { name = "bioio-tiff-glob" },
     { name = "bioio-tifffile" },
-    { name = "click" },
-    { name = "iscc-core" },
-    { name = "iscc-sum" },
-    { name = "loguru" },
-    { name = "numpy" },
-    { name = "ome-zarr" },
     { name = "omero-py" },
-    { name = "pillow" },
     { name = "zeroc-ice", version = "3.6.5", source = { url = "https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl" }, marker = "sys_platform == 'linux'" },
     { name = "zeroc-ice", version = "3.6.5", source = { url = "https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl" }, marker = "sys_platform == 'darwin'" },
     { name = "zeroc-ice", version = "3.6.5", source = { url = "https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl" }, marker = "sys_platform == 'win32'" },
+]
+bioformats = [
+    { name = "bioio-bioformats" },
+]
+czi = [
+    { name = "bioio-czi" },
+]
+dv = [
+    { name = "bioio-dv" },
+]
+imageio = [
+    { name = "bioio-imageio" },
+]
+lif = [
+    { name = "bioio-lif" },
+]
+nd2 = [
+    { name = "bioio-nd2" },
+]
+ome-tiff = [
+    { name = "bioio-ome-tiff" },
+]
+ome-zarr-plugin = [
+    { name = "bioio-ome-zarr" },
+]
+omero = [
+    { name = "omero-py" },
+    { name = "zeroc-ice", version = "3.6.5", source = { url = "https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl" }, marker = "sys_platform == 'linux'" },
+    { name = "zeroc-ice", version = "3.6.5", source = { url = "https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl" }, marker = "sys_platform == 'darwin'" },
+    { name = "zeroc-ice", version = "3.6.5", source = { url = "https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl" }, marker = "sys_platform == 'win32'" },
+]
+readers = [
+    { name = "bioio-bioformats" },
+    { name = "bioio-czi" },
+    { name = "bioio-dv" },
+    { name = "bioio-imageio" },
+    { name = "bioio-lif" },
+    { name = "bioio-nd2" },
+    { name = "bioio-ome-tiff" },
+    { name = "bioio-ome-zarr" },
+    { name = "bioio-tiff-glob" },
+    { name = "bioio-tifffile" },
+]
+tiff-glob = [
+    { name = "bioio-tiff-glob" },
+]
+tifffile = [
+    { name = "bioio-tifffile" },
 ]
 
 [package.dev-dependencies]
@@ -1017,28 +1069,53 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bioio", specifier = ">=3.0.0" },
-    { name = "bioio-bioformats", specifier = ">=1.3.0" },
-    { name = "bioio-czi", specifier = ">=2.4.0" },
-    { name = "bioio-dv", specifier = ">=1.2.0" },
-    { name = "bioio-imageio", specifier = ">=1.3.0" },
-    { name = "bioio-lif", specifier = ">=1.4.1" },
-    { name = "bioio-nd2", specifier = ">=1.5.0" },
-    { name = "bioio-ome-tiff", specifier = ">=1.4.0" },
-    { name = "bioio-ome-zarr", specifier = ">=2.3.0" },
-    { name = "bioio-tiff-glob", specifier = ">=1.2.0" },
-    { name = "bioio-tifffile", specifier = ">=1.3.0" },
+    { name = "bioio-bioformats", marker = "extra == 'all'", specifier = ">=1.3.0" },
+    { name = "bioio-bioformats", marker = "extra == 'bioformats'", specifier = ">=1.3.0" },
+    { name = "bioio-bioformats", marker = "extra == 'readers'", specifier = ">=1.3.0" },
+    { name = "bioio-czi", marker = "extra == 'all'", specifier = ">=2.4.0" },
+    { name = "bioio-czi", marker = "extra == 'czi'", specifier = ">=2.4.0" },
+    { name = "bioio-czi", marker = "extra == 'readers'", specifier = ">=2.4.0" },
+    { name = "bioio-dv", marker = "extra == 'all'", specifier = ">=1.2.0" },
+    { name = "bioio-dv", marker = "extra == 'dv'", specifier = ">=1.2.0" },
+    { name = "bioio-dv", marker = "extra == 'readers'", specifier = ">=1.2.0" },
+    { name = "bioio-imageio", marker = "extra == 'all'", specifier = ">=1.3.0" },
+    { name = "bioio-imageio", marker = "extra == 'imageio'", specifier = ">=1.3.0" },
+    { name = "bioio-imageio", marker = "extra == 'readers'", specifier = ">=1.3.0" },
+    { name = "bioio-lif", marker = "extra == 'all'", specifier = ">=1.4.1" },
+    { name = "bioio-lif", marker = "extra == 'lif'", specifier = ">=1.4.1" },
+    { name = "bioio-lif", marker = "extra == 'readers'", specifier = ">=1.4.1" },
+    { name = "bioio-nd2", marker = "extra == 'all'", specifier = ">=1.5.0" },
+    { name = "bioio-nd2", marker = "extra == 'nd2'", specifier = ">=1.5.0" },
+    { name = "bioio-nd2", marker = "extra == 'readers'", specifier = ">=1.5.0" },
+    { name = "bioio-ome-tiff", marker = "extra == 'all'", specifier = ">=1.4.0" },
+    { name = "bioio-ome-tiff", marker = "extra == 'ome-tiff'", specifier = ">=1.4.0" },
+    { name = "bioio-ome-tiff", marker = "extra == 'readers'", specifier = ">=1.4.0" },
+    { name = "bioio-ome-zarr", marker = "extra == 'all'", specifier = ">=2.3.0" },
+    { name = "bioio-ome-zarr", marker = "extra == 'ome-zarr-plugin'", specifier = ">=2.3.0" },
+    { name = "bioio-ome-zarr", marker = "extra == 'readers'", specifier = ">=2.3.0" },
+    { name = "bioio-tiff-glob", marker = "extra == 'all'", specifier = ">=1.2.0" },
+    { name = "bioio-tiff-glob", marker = "extra == 'readers'", specifier = ">=1.2.0" },
+    { name = "bioio-tiff-glob", marker = "extra == 'tiff-glob'", specifier = ">=1.2.0" },
+    { name = "bioio-tifffile", marker = "extra == 'all'", specifier = ">=1.3.0" },
+    { name = "bioio-tifffile", marker = "extra == 'readers'", specifier = ">=1.3.0" },
+    { name = "bioio-tifffile", marker = "extra == 'tifffile'", specifier = ">=1.3.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "iscc-core", specifier = ">=1.2.2" },
     { name = "iscc-sum", specifier = ">=0.1.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "ome-zarr", specifier = ">=0.12.2" },
-    { name = "omero-py", specifier = ">=5.21.1" },
+    { name = "omero-py", marker = "extra == 'all'", specifier = ">=5.21.1" },
+    { name = "omero-py", marker = "extra == 'omero'", specifier = ">=5.21.1" },
     { name = "pillow", specifier = ">=10.0.0" },
-    { name = "zeroc-ice", marker = "sys_platform == 'darwin'", url = "https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl" },
-    { name = "zeroc-ice", marker = "sys_platform == 'linux'", url = "https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl" },
-    { name = "zeroc-ice", marker = "sys_platform == 'win32'", url = "https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl" },
+    { name = "zeroc-ice", marker = "sys_platform == 'darwin' and extra == 'all'", url = "https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl" },
+    { name = "zeroc-ice", marker = "sys_platform == 'darwin' and extra == 'omero'", url = "https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl" },
+    { name = "zeroc-ice", marker = "sys_platform == 'linux' and extra == 'all'", url = "https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl" },
+    { name = "zeroc-ice", marker = "sys_platform == 'linux' and extra == 'omero'", url = "https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl" },
+    { name = "zeroc-ice", marker = "sys_platform == 'win32' and extra == 'all'", url = "https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl" },
+    { name = "zeroc-ice", marker = "sys_platform == 'win32' and extra == 'omero'", url = "https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl" },
 ]
+provides-extras = ["omero", "bioformats", "czi", "ome-tiff", "ome-zarr-plugin", "dv", "imageio", "lif", "nd2", "tifffile", "tiff-glob", "readers", "all"]
 
 [package.metadata.requires-dev]
 dev = [

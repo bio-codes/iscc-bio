@@ -10,13 +10,35 @@ dependencies = [
     "pillow>=10.0.0",
     "numpy>=1.24.0",
     "click>=8.0.0",
+    "ome-zarr>=0.12.2",
+    "bioio>=3.0.0",
+    "loguru>=0.7.3",
+]
+
+[project.optional-dependencies]
+# OMERO support
+omero = [
     "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl ; sys_platform == 'darwin'",
     "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
     "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux'",
     "omero-py>=5.21.1",
-    "ome-zarr>=0.12.2",
-    "bioio>=3.0.0",
-    "bioio-bioformats>=1.3.0",  # Install bioformats FIRST so native readers get higher priority
+]
+
+# Individual BioIO reader plugins
+bioformats = ["bioio-bioformats>=1.3.0"]
+czi = ["bioio-czi>=2.4.0"]
+ome-tiff = ["bioio-ome-tiff>=1.4.0"]
+ome-zarr-plugin = ["bioio-ome-zarr>=2.3.0"]
+dv = ["bioio-dv>=1.2.0"]
+imageio = ["bioio-imageio>=1.3.0"]
+lif = ["bioio-lif>=1.4.1"]
+nd2 = ["bioio-nd2>=1.5.0"]
+tifffile = ["bioio-tifffile>=1.3.0"]
+tiff-glob = ["bioio-tiff-glob>=1.2.0"]
+
+# All BioIO readers (bioformats first for priority)
+readers = [
+    "bioio-bioformats>=1.3.0",
     "bioio-czi>=2.4.0",
     "bioio-ome-tiff>=1.4.0",
     "bioio-ome-zarr>=2.3.0",
@@ -26,7 +48,24 @@ dependencies = [
     "bioio-nd2>=1.5.0",
     "bioio-tifffile>=1.3.0",
     "bioio-tiff-glob>=1.2.0",
-    "loguru>=0.7.3",
+]
+
+# All optional dependencies
+all = [
+    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl ; sys_platform == 'darwin'",
+    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
+    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux'",
+    "omero-py>=5.21.1",
+    "bioio-bioformats>=1.3.0",
+    "bioio-czi>=2.4.0",
+    "bioio-ome-tiff>=1.4.0",
+    "bioio-ome-zarr>=2.3.0",
+    "bioio-dv>=1.2.0",
+    "bioio-imageio>=1.3.0",
+    "bioio-lif>=1.4.1",
+    "bioio-nd2>=1.5.0",
+    "bioio-tifffile>=1.3.0",
+    "bioio-tiff-glob>=1.2.0",
 ]
 
 [dependency-groups]
