@@ -55,12 +55,16 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 **Bioimage** : Multi-dimensional pixel array representing microscopy or other bioimaging data.
 
-**Plane** : A 2D array of pixels with dimensions Y (height) and X (width).
+**Plane** : A 2D array of pixels with dimensions Y (height) and X (width) at a specific combination of Z
+(depth), C (channel), and T (time) coordinates. Each plane contains pixel intensity values for a single channel
+at a single focal depth and timepoint.
 
 **Dimension** : An axis of the multi-dimensional array. Standard bioimage dimensions are:
 
 - **T** (Time): Temporal dimension for time-series data
-- **C** (Channel): Spectral or fluorescence channel dimension
+- **C** (Channel): Spectral or fluorescence channel dimension representing a specific imaging modality (e.g.,
+    GFP, DAPI, brightfield). A channel consists of all planes sharing the same C index across different Z and T
+    coordinates
 - **Z** (Depth): Z-stack or focal plane dimension
 - **Y** (Height): Vertical spatial dimension
 - **X** (Width): Horizontal spatial dimension
@@ -138,7 +142,8 @@ When a dimension is absent:
 
 !!! tip "Quick Reference"
 
-    Traverse planes in Z→C→T order: outermost Z, middle C, innermost T
+    Traverse planes in Z→C→T order: outermost Z, middle C, innermost T Each plane is a 2D pixel array for one
+    channel at one Z-position and timepoint
 
 Implementations **MUST** traverse planes using nested loops in this exact order:
 
@@ -146,7 +151,8 @@ Implementations **MUST** traverse planes using nested loops in this exact order:
 2. **Middle loop: C dimension** - Iterate from 0 to size_c - 1
 3. **Innermost loop: T dimension** - Iterate from 0 to size_t - 1
 
-For each combination of coordinates (z, c, t), extract the 2D plane at position (z, c, t, :, :).
+For each combination of coordinates (z, c, t), extract the 2D plane at position (z, c, t, :, :). This plane
+contains pixel intensity values for channel c at z-position z and timepoint t.
 
 #### Example Traversal
 
@@ -222,6 +228,16 @@ Canonical bytes (big-endian uint16):
 
 Total: 8 bytes (4 pixels × 2 bytes per pixel)
 ```
+
+#### Understanding Planes in Multi-Channel Images
+
+For a 3-channel RGB image with dimensions C=3, Y=512, X=512:
+
+- Plane at (z=0, c=0, t=0): 512×512 2D array of RED channel intensities
+- Plane at (z=0, c=1, t=0): 512×512 2D array of GREEN channel intensities
+- Plane at (z=0, c=2, t=0): 512×512 2D array of BLUE channel intensities
+
+Each plane is processed separately to create its canonical byte sequence.
 
 ### 4.5 Hash Processing
 

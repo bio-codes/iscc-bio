@@ -1,7 +1,9 @@
 """CLI script to verify IMAGEWALK implementation produces OMERO-compatible checksums.
 
 This script calculates SHA1 checksums using the IMAGEWALK algorithm and compares
-them with OMERO server-side checksums for compatibility verification.
+them with OMERO server-side checksums for compatibility verification. It processes
+2D planes (pixel arrays for single channels at specific Z and T positions) in the
+standardized Z→C→T traversal order.
 
 Usage:
     python scripts/imagewalk_check.py <omero-server-url> <image-id> [--user <username>] [--password <password>]
@@ -25,7 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 def calculate_imagewalk_sha1(server_url, image_id, username, password):
-    """Calculate SHA1 using IMAGEWALK algorithm and compare with OMERO server hash."""
+    """Calculate SHA1 using IMAGEWALK algorithm and compare with OMERO server hash.
+
+    Processes each 2D plane (at specific Z, C, T coordinates) in IMAGEWALK order
+    and creates canonical bytes for each plane's pixel intensity values.
+    """
 
     # Connect to OMERO
     conn = BlitzGateway(username, password, host=server_url, port=4064)
@@ -89,24 +95,27 @@ def calculate_imagewalk_sha1(server_url, image_id, username, password):
 
             plane_num = 1
             # Process planes in Z→C→T order (IMAGEWALK specification)
+            # Each plane is a 2D array for one channel at one Z and T position
             for z in range(size_z):
                 for c in range(size_c):
                     for t in range(size_t):
-                        # Get plane data
-                        plane_bytes = rps.getPlane(z, c, t)
+                        # Get 2D plane data for channel c at z-position z and timepoint t
+                        plane_2d_bytes = rps.getPlane(z, c, t)
 
                         # Convert to numpy array
-                        plane_array = np.frombuffer(plane_bytes, dtype=np_dtype)
-                        plane_array = plane_array.reshape(size_y, size_x)
+                        plane_2d_array = np.frombuffer(plane_2d_bytes, dtype=np_dtype)
+                        plane_2d_array = plane_2d_array.reshape(size_y, size_x)
 
-                        # Convert to canonical bytes (big-endian)
-                        canonical_bytes = _plane_to_canonical_bytes(plane_array)
+                        # Convert 2D plane to canonical bytes (big-endian)
+                        canonical_bytes = _plane_to_canonical_bytes(plane_2d_array)
 
                         # Update hash
                         sha1_hasher.update(canonical_bytes)
 
                         # Log plane processing
-                        logger.info(f"  Plane {plane_num}:  z={z}, c={c}, t={t}")
+                        logger.info(
+                            f"  Plane {plane_num}: z={z}, c={c}, t={t} (2D array for channel {c})"
+                        )
                         plane_num += 1
 
             calculated_sha1 = sha1_hasher.hexdigest()
@@ -120,6 +129,7 @@ def calculate_imagewalk_sha1(server_url, image_id, username, password):
             # hash without transferring pixel data to the client. This is the current
             # live calculation vs the stored sha1 value which may be incorrect due to
             # a possible OMERO bug. (Verified: ome/openmicroscopy & ome/omero-py codebases)
+            # The server also processes 2D planes in the same Z→C→T order.
             server_calculated_sha1 = None
             try:
                 digest_bytes = rps.calculateMessageDigest()
