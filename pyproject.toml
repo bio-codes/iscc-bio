@@ -55,6 +55,19 @@ packages = ["iscc_bio"]
 [tool.uv]
 package = true
 
+[tool.ruff]
+# Support for PEP 484 type comments
+extend-exclude = []
+
+[tool.ruff.lint]
+# Allow imports that are only used in type comments
+# See: https://docs.astral.sh/ruff/settings/#lint_typing-modules
+typing-modules = ["typing"]
+
+[tool.ruff.lint.per-file-ignores]
+# Files using type comments need to keep their typing imports
+"**/imagewalk/*.py" = ["F401"]
+
 [tool.poe.tasks]
 # Documentation tasks
 docs-build = { script = "scripts.build_docs:main", help = "Copy README.md to /docs" }

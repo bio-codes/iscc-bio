@@ -5,12 +5,13 @@ This module provides deterministic plane traversal for multi-dimensional bioimag
 using the BioIO library, conforming to the IMAGEWALK specification.
 """
 
+from typing import Generator
 from iscc_bio.imagewalk.models import Plane
 import bioio
 
 
 def iter_planes_bioio(image):
-    # type: (bioio.ImageLike) -> object
+    # type: (bioio.ImageLike) -> Generator
     """Iterate over 2D planes in a bioimage following IMAGEWALK Z→C→T traversal order.
 
     Processes each scene independently and yields planes in deterministic order:
