@@ -7,7 +7,7 @@ in OME-NGFF/Zarr format using the ome-zarr-py library, conforming to the IMAGEWA
 
 from typing import Generator, Union
 from pathlib import Path
-from iscc_bio.imagewalk.models import Plane
+from iscc_bio.imagewalk.common import Plane
 from loguru import logger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader, Multiscales

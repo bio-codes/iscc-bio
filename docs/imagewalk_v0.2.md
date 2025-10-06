@@ -99,14 +99,21 @@ for z in range(size_z):  # Outermost
             extract_2d_plane(z, c, t,:,:)
 ```
 
-Example for size_z=2, size_c=3, size_t=2:
+Example for size_z=2, size_c=3, size_t=2 (12 total planes):
 
 ```
-z=0, c=0: t=0, t=1
-z=0, c=1: t=0, t=1
-z=0, c=2: t=0, t=1
-z=1, c=0: t=0, t=1
-... (12 total planes)
+Plane 1:  z=0, c=0, t=0
+Plane 2:  z=0, c=0, t=1
+Plane 3:  z=0, c=1, t=0
+Plane 4:  z=0, c=1, t=1
+Plane 5:  z=0, c=2, t=0
+Plane 6:  z=0, c=2, t=1
+Plane 7:  z=1, c=0, t=0
+Plane 8:  z=1, c=0, t=1
+Plane 9:  z=1, c=1, t=0
+Plane 10: z=1, c=1, t=1
+Plane 11: z=1, c=2, t=0
+Plane 12: z=1, c=2, t=1
 ```
 
 ### 4.4 Canonical Byte Conversion
