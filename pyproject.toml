@@ -108,6 +108,10 @@ typing-modules = ["typing"]
 # Files using type comments need to keep their typing imports
 "**/imagewalk/*.py" = ["F401"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
 [tool.poe.tasks]
 # Documentation tasks
 docs-build = { script = "scripts.build_docs:main", help = "Copy README.md to /docs" }
