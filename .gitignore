@@ -12,6 +12,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Docs
+site/
+
 # AI
 .mcp.json
 CLAUDE.local.md
