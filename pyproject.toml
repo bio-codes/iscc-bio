@@ -79,6 +79,7 @@ dev = [
     "mdformat-footnote>=0.1.1",
     "mdformat-tables>=1.0.0",
     "mdformat-gfm-alerts>=2.0.0",
+    "pytest>=8.4.2",
 ]
 
 [project.scripts]
