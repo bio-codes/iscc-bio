@@ -17,6 +17,11 @@ foundation for content-based identification of bioimaging data.
 
 This specification is DRAFT as of 2025-10-03.
 
+!!! note "OMERO Compatibility"
+
+    This specification is based on and compatible with OMERO server v5.29.2's internal pixel data canonicalization
+    method for generating hashes at the scene/image level.
+
 ## 1. Introduction
 
 ### 1.1 Motivation
