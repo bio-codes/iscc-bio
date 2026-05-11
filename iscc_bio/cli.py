@@ -1,5 +1,6 @@
 """CLI interface for iscc-bio."""
 
+import json
 import click
 from pathlib import Path
 import sys
@@ -9,6 +10,7 @@ from iscc_bio.scene import extract_scenes
 from iscc_bio.views import extract_views, views_to_thumbnails
 from iscc_bio.pixhash import pixhash_bioio, pixhash_omero, pixhash_zarr
 from iscc_bio.biocode import generate_biocode, format_output
+from iscc_bio.iscc_sum import generate_iscc_sum
 
 
 # Configure logging
@@ -521,6 +523,119 @@ def biocode(input, output_dir, max_views):
     except Exception as e:
         click.echo(f"✗ Error processing {input_path}: {e}", err=True)
         logger.exception("Biocode generation failed")
+        sys.exit(1)
+
+
+@cli.command("iscc-sum")
+@click.argument("input", type=click.Path(exists=True, path_type=Path), required=False)
+@click.option(
+    "--source",
+    "-s",
+    type=click.Choice(["auto", "bioio", "omero", "zarr"], case_sensitive=False),
+    default="auto",
+    help="Data source type (default: auto-detect)",
+)
+@click.option(
+    "--simprints",
+    is_flag=True,
+    default=False,
+    help="Generate per-plane data-code simprints (DATA_NONE_V0)",
+)
+@click.option(
+    "--host",
+    help="OMERO server hostname (e.g., omero.iscc.id)",
+)
+@click.option(
+    "--iid",
+    type=int,
+    help="OMERO image ID",
+)
+@click.option(
+    "--fid",
+    type=int,
+    help="OMERO fileset ID",
+)
+def iscc_sum(input, source, simprints, host, iid, fid):
+    """Generate ISCC-SUM codes for bioimage scenes.
+
+    Produces one ISCC-SUM per scene with optional per-plane granular simprints
+    for similarity search. Output is JSON matching the ISCC search API schema.
+    """
+    from iscc_bio.imagewalk import (
+        iter_planes_bioio,
+        iter_planes_ngff,
+        iter_planes_blitz_image,
+        iter_planes_blitz_fileset,
+    )
+
+    planes = None
+
+    if host and (iid or fid):
+        try:
+            from omero.gateway import BlitzGateway
+
+            logger.info(f"Connecting to OMERO server: {host}")
+            conn = BlitzGateway("root", "omero", host=host, port=4064)
+
+            if not conn.connect():
+                click.echo(f"Failed to connect to OMERO server: {host}", err=True)
+                sys.exit(1)
+
+            try:
+                if fid:
+                    fileset = conn.getObject("Fileset", fid)
+                    if not fileset:
+                        click.echo(f"Fileset {fid} not found", err=True)
+                        sys.exit(1)
+                    planes = iter_planes_blitz_fileset(conn, fileset)
+                else:
+                    image = conn.getObject("Image", iid)
+                    if not image:
+                        click.echo(f"Image {iid} not found", err=True)
+                        sys.exit(1)
+                    planes = iter_planes_blitz_image(conn, image)
+
+                results = generate_iscc_sum(planes, simprints=simprints)
+                click.echo(json.dumps(results, indent=2))
+            finally:
+                conn.close()
+
+        except ImportError:
+            click.echo(
+                "OMERO Python library (omero-py) is not installed.",
+                err=True,
+            )
+            sys.exit(1)
+
+    elif input:
+        input_path = Path(input)
+
+        if source == "auto":
+            if input_path.suffix == ".zarr" or (
+                input_path.is_dir() and (input_path / ".zattrs").exists()
+            ):
+                source = "zarr"
+            else:
+                source = "bioio"
+
+        try:
+            if source == "zarr":
+                planes = iter_planes_ngff(str(input_path))
+            else:
+                planes = iter_planes_bioio(str(input_path))
+
+            results = generate_iscc_sum(planes, simprints=simprints)
+            click.echo(json.dumps(results, indent=2))
+
+        except Exception as e:
+            click.echo(f"Error processing {input_path}: {e}", err=True)
+            sys.exit(1)
+
+    else:
+        click.echo(
+            "Provide a file path or --host with --iid/--fid for OMERO access.",
+            err=True,
+        )
         sys.exit(1)
 
 
