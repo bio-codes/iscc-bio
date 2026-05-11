@@ -5,7 +5,7 @@ over normalized pixel data from various bioimage sources (local files, OMERO ser
 All implementations produce identical hashes for the same image data.
 """
 
-import iscc_sum
+import iscc_lib
 from pathlib import Path
 from typing import List
 import numpy as np
@@ -99,8 +99,9 @@ def pixhash_bioio(image_path: str) -> List[str]:
             f"{image_path.name} - scene {scene_idx}: T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}"
         )
 
-        # Initialize hasher for this scene
-        hasher = iscc_sum.IsccSumProcessor()
+        # Initialize hashers for this scene
+        data_hasher = iscc_lib.DataHasher()
+        inst_hasher = iscc_lib.InstanceHasher()
 
         # Process planes in Z→C→T order (OMERO XYZCT storage order)
         for z in range(size_z):
@@ -120,10 +121,15 @@ def pixhash_bioio(image_path: str) -> List[str]:
 
                     # Convert to canonical bytes and update hash
                     canonical_bytes = _plane_to_canonical_bytes(plane)
-                    hasher.update(canonical_bytes)
+                    data_hasher.update(canonical_bytes)
+                    inst_hasher.update(canonical_bytes)
 
         # Get final hash for this scene
-        scene_hash = hasher.result(wide=True, add_units=False).iscc
+        data_code = data_hasher.finalize(bits=256)["iscc"]
+        inst_code = inst_hasher.finalize(bits=256)["iscc"]
+        scene_hash = iscc_lib.gen_iscc_code_v0([data_code, inst_code], wide=True)[
+            "iscc"
+        ]
         hashes.append(scene_hash)
         logger.debug(f"{image_path.name} - scene {scene_idx}: {scene_hash}")
 
@@ -210,8 +216,9 @@ def pixhash_omero(server_url: str, image_id: int) -> List[str]:
                 # Set the pixels ID to access the pixel data
                 rps.setPixelsId(pixels_id, True)  # True = bypass cache
 
-                # Initialize hasher for this image
-                hasher = iscc_sum.IsccSumProcessor()
+                # Initialize hashers for this image
+                data_hasher = iscc_lib.DataHasher()
+                inst_hasher = iscc_lib.InstanceHasher()
 
                 # Process planes in Z→C→T order (IMAGEWALK specification)
                 for z in range(size_z):
@@ -226,10 +233,15 @@ def pixhash_omero(server_url: str, image_id: int) -> List[str]:
 
                             # Convert to canonical bytes and update hash
                             canonical_bytes = _plane_to_canonical_bytes(plane_array)
-                            hasher.update(canonical_bytes)
+                            data_hasher.update(canonical_bytes)
+                            inst_hasher.update(canonical_bytes)
 
                 # Get final hash for this image
-                image_hash = hasher.result(wide=True, add_units=False).iscc
+                data_code = data_hasher.finalize(bits=256)["iscc"]
+                inst_code = inst_hasher.finalize(bits=256)["iscc"]
+                image_hash = iscc_lib.gen_iscc_code_v0(
+                    [data_code, inst_code], wide=True
+                )["iscc"]
                 hashes.append(image_hash)
                 logger.info(f"Image {img.getId()}: {image_hash}")
 
@@ -369,8 +381,9 @@ def pixhash_zarr(zarr_path: str) -> List[str]:
             f"Series {series_key} dimensions: T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}"
         )
 
-        # Initialize hasher for this series
-        hasher = iscc_sum.IsccSumProcessor()
+        # Initialize hashers for this series
+        data_hasher = iscc_lib.DataHasher()
+        inst_hasher = iscc_lib.InstanceHasher()
 
         # Process planes in Z→C→T order (matching OMERO)
         for z in range(size_z):
@@ -397,10 +410,15 @@ def pixhash_zarr(zarr_path: str) -> List[str]:
 
                     # Convert to canonical bytes and update hash
                     canonical_bytes = _plane_to_canonical_bytes(plane)
-                    hasher.update(canonical_bytes)
+                    data_hasher.update(canonical_bytes)
+                    inst_hasher.update(canonical_bytes)
 
         # Get final hash for this series
-        series_hash = hasher.result(wide=True, add_units=False).iscc
+        data_code = data_hasher.finalize(bits=256)["iscc"]
+        inst_code = inst_hasher.finalize(bits=256)["iscc"]
+        series_hash = iscc_lib.gen_iscc_code_v0([data_code, inst_code], wide=True)[
+            "iscc"
+        ]
         hashes.append(series_hash)
         logger.info(f"Series {series_key}: {series_hash}")
 

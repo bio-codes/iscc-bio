@@ -7,8 +7,7 @@ This module implements a sophisticated bioimage fingerprinting system that:
 4. Combines view codes into a global ISCC-MIXED descriptor
 """
 
-import iscc_sum
-import iscc_core as ic
+import iscc_lib
 import numpy as np
 import logging
 from pathlib import Path
@@ -281,7 +280,7 @@ class ViewSelector:
         """Generate ISCC code for deduplication."""
         try:
             pixels = _prepare_for_iscc(view_data)
-            result = ic.gen_image_code_v0(pixels.tolist(), bits=256)
+            result = iscc_lib.gen_image_code_v0(pixels.tolist(), bits=256)
             return result["iscc"]
         except Exception:
             return None
@@ -291,7 +290,10 @@ class ViewSelector:
         if not code1 or not code2:
             return False
         try:
-            distance = ic.iscc_distance(code1, code2)
+            _, _, _, _, bytes1 = iscc_lib.iscc_decode(code1)
+            _, _, _, _, bytes2 = iscc_lib.iscc_decode(code2)
+            xor = int.from_bytes(bytes1, "big") ^ int.from_bytes(bytes2, "big")
+            distance = bin(xor).count("1")
             return distance <= 8
         except Exception:
             return False
@@ -498,8 +500,9 @@ def generate_biocode(
             f"Scene {scene_idx} dimensions: T={size_t}, C={size_c}, Z={size_z}, Y={size_y}, X={size_x}"
         )
 
-        # Initialize hasher and view selector
-        hasher = iscc_sum.IsccSumProcessor()
+        # Initialize hashers and view selector
+        data_hasher = iscc_lib.DataHasher()
+        inst_hasher = iscc_lib.InstanceHasher()
         selector = ViewSelector(max_views=max_views)
 
         # Process planes in Z→C→T order
@@ -518,14 +521,18 @@ def generate_biocode(
 
                     # Update pixel hash
                     canonical_bytes = _plane_to_canonical_bytes(plane)
-                    hasher.update(canonical_bytes)
+                    data_hasher.update(canonical_bytes)
+                    inst_hasher.update(canonical_bytes)
 
                     # Process for view selection
                     selector.process_plane(plane, z, c, t, dim_info)
 
         # Finalize ISCC-SUM
-        iscc_sum_result = hasher.result(wide=True, add_units=False)
-        iscc_sum_code = iscc_sum_result.iscc
+        data_code = data_hasher.finalize(bits=256)["iscc"]
+        inst_code = inst_hasher.finalize(bits=256)["iscc"]
+        iscc_sum_code = iscc_lib.gen_iscc_code_v0([data_code, inst_code], wide=True)[
+            "iscc"
+        ]
 
         # Select final views
         selected_views = selector.select_final_views()
@@ -544,7 +551,7 @@ def generate_biocode(
                 pixels = _prepare_for_iscc(view.data)
 
             # Generate ISCC-IMAGE code
-            img_code_result = ic.gen_image_code_v0(pixels.tolist(), bits=256)
+            img_code_result = iscc_lib.gen_image_code_v0(pixels.tolist(), bits=256)
             img_code = img_code_result["iscc"]
             image_codes.append(img_code)
 
@@ -583,14 +590,14 @@ def generate_biocode(
 
         # Generate ISCC-MIXED code from all view codes (requires at least 2 codes)
         if len(image_codes) >= 2:
-            mixed_result = ic.gen_mixed_code_v0(image_codes, bits=256)
+            mixed_result = iscc_lib.gen_mixed_code_v0(image_codes, bits=256)
             iscc_mixed_code = mixed_result["iscc"]
         elif len(image_codes) == 1:
             # Duplicate the single code to generate ISCC-MIXED
             logger.info(
                 f"Scene {scene_idx}: Only 1 view extracted, duplicating code for ISCC-MIXED"
             )
-            mixed_result = ic.gen_mixed_code_v0(
+            mixed_result = iscc_lib.gen_mixed_code_v0(
                 [image_codes[0], image_codes[0]], bits=256
             )
             iscc_mixed_code = mixed_result["iscc"]
