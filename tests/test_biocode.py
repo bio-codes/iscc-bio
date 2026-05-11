@@ -1,8 +1,8 @@
-"""Tests for scene-level ISCC-SUM generation."""
+"""Tests for biocode (scene-level ISCC-SUM) generation."""
 
 import numpy as np
 from iscc_bio.imagewalk.common import Plane
-from iscc_bio.iscc_sum import generate_iscc_sum
+from iscc_bio.biocode import generate_biocode
 
 
 def make_plane(scene_idx=0, z=0, c=0, t=0, shape=(64, 64), dtype=np.uint8, value=None):
@@ -22,7 +22,7 @@ def make_plane(scene_idx=0, z=0, c=0, t=0, shape=(64, 64), dtype=np.uint8, value
 def test_single_scene_basic():
     """Single scene produces one IsccEntry."""
     planes = [make_plane(z=z) for z in range(3)]
-    results = generate_iscc_sum(iter(planes))
+    results = generate_biocode(iter(planes))
     assert len(results) == 1
     assert "iscc_code" in results[0]
     assert "units" in results[0]
@@ -41,21 +41,21 @@ def test_multi_scene():
         make_plane(scene_idx=1, z=1),
         make_plane(scene_idx=2, z=0),
     ]
-    results = generate_iscc_sum(iter(planes))
+    results = generate_biocode(iter(planes))
     assert len(results) == 3
 
 
 def test_no_simprints_by_default():
     """Simprints are not included when flag is False."""
     planes = [make_plane(z=z) for z in range(3)]
-    results = generate_iscc_sum(iter(planes))
+    results = generate_biocode(iter(planes))
     assert "simprints" not in results[0]
 
 
 def test_simprints_structure():
     """Simprints have correct structure when enabled."""
     planes = [make_plane(z=z) for z in range(3)]
-    results = generate_iscc_sum(iter(planes), simprints=True)
+    results = generate_biocode(iter(planes), simprints=True)
     assert "simprints" in results[0]
     assert "DATA_NONE_V0" in results[0]["simprints"]
 
@@ -79,7 +79,7 @@ def test_simprints_offset_sequential():
         make_plane(scene_idx=1, z=0, c=0),
         make_plane(scene_idx=1, z=0, c=1),
     ]
-    results = generate_iscc_sum(iter(planes), simprints=True)
+    results = generate_biocode(iter(planes), simprints=True)
 
     scene0_offsets = [e["offset"] for e in results[0]["simprints"]["DATA_NONE_V0"]]
     scene1_offsets = [e["offset"] for e in results[1]["simprints"]["DATA_NONE_V0"]]
@@ -91,12 +91,12 @@ def test_simprints_offset_sequential():
 def test_simprints_size_matches_dtype():
     """Simprint size reflects plane byte size (Y * X * dtype_bytes)."""
     planes_u16 = [make_plane(shape=(128, 128), dtype=np.uint16)]
-    results = generate_iscc_sum(iter(planes_u16), simprints=True)
+    results = generate_biocode(iter(planes_u16), simprints=True)
     entry = results[0]["simprints"]["DATA_NONE_V0"][0]
     assert entry["size"] == 128 * 128 * 2
 
     planes_f32 = [make_plane(shape=(32, 32), dtype=np.float32)]
-    results = generate_iscc_sum(iter(planes_f32), simprints=True)
+    results = generate_biocode(iter(planes_f32), simprints=True)
     entry = results[0]["simprints"]["DATA_NONE_V0"][0]
     assert entry["size"] == 32 * 32 * 4
 
@@ -107,8 +107,8 @@ def test_deterministic_output():
     def make_planes():
         return [make_plane(z=z, value=z * 10) for z in range(5)]
 
-    r1 = generate_iscc_sum(iter(make_planes()), simprints=True)
-    r2 = generate_iscc_sum(iter(make_planes()), simprints=True)
+    r1 = generate_biocode(iter(make_planes()), simprints=True)
+    r2 = generate_biocode(iter(make_planes()), simprints=True)
     assert r1 == r2
 
 
@@ -116,14 +116,14 @@ def test_different_data_different_codes():
     """Different pixel data produces different ISCC-SUM codes."""
     planes_a = [make_plane(value=0)]
     planes_b = [make_plane(value=255)]
-    r_a = generate_iscc_sum(iter(planes_a))
-    r_b = generate_iscc_sum(iter(planes_b))
+    r_a = generate_biocode(iter(planes_a))
+    r_b = generate_biocode(iter(planes_b))
     assert r_a[0]["iscc_code"] != r_b[0]["iscc_code"]
 
 
 def test_empty_input():
     """Empty plane iterator returns empty results."""
-    results = generate_iscc_sum(iter([]))
+    results = generate_biocode(iter([]))
     assert results == []
 
 
@@ -132,7 +132,7 @@ def test_simprint_base64_valid():
     import base64
 
     planes = [make_plane(z=z, shape=(256, 256)) for z in range(2)]
-    results = generate_iscc_sum(iter(planes), simprints=True)
+    results = generate_biocode(iter(planes), simprints=True)
 
     for entry in results[0]["simprints"]["DATA_NONE_V0"]:
         decoded = base64.b64decode(entry["simprint"])

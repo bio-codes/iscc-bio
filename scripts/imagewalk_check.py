@@ -20,7 +20,9 @@ from omero.gateway import BlitzGateway
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from iscc_bio.pixhash import _plane_to_canonical_bytes
+from iscc_bio.imagewalk.common import (
+    plane_to_canonical_bytes as _plane_to_canonical_bytes,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
