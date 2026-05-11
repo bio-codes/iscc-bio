@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>biocode :: IMAGEWALK Playground v4</title>
+<style>
+  /* ----------------------------------------------------------------
+     biocode v4 — playground (v2) + spatial clarity (v2.6.3 sidebar/flow)
+       * multi-scene shown at once
+       * continuous traversal trail weaving through all scenes
+       * axis labels on the axes (v2.6.3 style)
+       * no auto-rotation
+  ---------------------------------------------------------------- */
+  :root {
+    --bg-0: #06070d;
+    --bg-1: #0c0f1d;
+    --bg-2: #131a2e;
+    --bg-3: #1a2342;
+    --border: #2a3354;
+    --border-strong: #3f4d7c;
+    --border-glow: #4d63b3;
+    --text: #e8ecff;
+    --text-dim: #8d97c2;
+    --text-mute: #5d6b9a;
+    --cyan: #00f0ff;
+    --magenta: #ff2bd6;
+    --lime: #b8ff3a;
+    --yellow: #ffcd3b;
+    --red: #ff3b6b;
+    --grid: rgba(0, 240, 255, 0.08);
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --radius: 6px;
+    --radius-sm: 4px;
+    --chip-bg: rgba(10, 14, 28, 0.85);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg-0);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at top, rgba(255, 43, 214, 0.06), transparent 60%),
+      radial-gradient(ellipse at bottom, rgba(0, 240, 255, 0.06), transparent 60%),
+      linear-gradient(180deg, var(--bg-0) 0%, #03040a 100%);
+    background-attachment: fixed;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* Layout */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
+    grid-template-rows: 56px 1fr 200px;
+    grid-template-areas:
+      "header header header"
+      "left   center right"
+      "bottom bottom bottom";
+    height: 100vh;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .panel {
+    background: var(--bg-1);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Header */
+  header.panel {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    background: linear-gradient(90deg, var(--bg-1) 0%, var(--bg-2) 100%);
+    border-bottom: 1px solid var(--border);
+    gap: 24px;
+  }
+
+  .brand { display: flex; align-items: center; gap: 12px; font-family: var(--mono); }
+  .brand-logo {
+    width: 28px; height: 28px;
+    border: 1.5px solid var(--cyan); border-radius: 4px;
+    position: relative;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.4), inset 0 0 8px rgba(0, 240, 255, 0.2);
+  }
+  .brand-logo::before {
+    content: ''; position: absolute; inset: 4px;
+    border: 1px solid var(--magenta); border-radius: 2px;
+    box-shadow: 0 0 6px rgba(255, 43, 214, 0.6);
+  }
+  .brand-logo::after {
+    content: ''; position: absolute; inset: 8px;
+    background: var(--lime); border-radius: 1px;
+    box-shadow: 0 0 8px rgba(184, 255, 58, 0.8);
+  }
+  .brand-text { font-size: 14px; letter-spacing: 0.5px; }
+  .brand-text .name { color: var(--text); font-weight: 700; }
+  .brand-text .sub {
+    color: var(--text-mute); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+  }
+
+  .source-toggle {
+    display: flex; gap: 4px; margin-left: auto; padding: 4px;
+    background: var(--bg-0); border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .source-btn {
+    background: transparent; border: 1px solid transparent;
+    color: var(--text-dim);
+    font-family: var(--mono); font-size: 11px;
+    padding: 6px 14px; cursor: pointer;
+    border-radius: 4px; transition: all 0.18s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .source-btn:hover { color: var(--text); background: var(--bg-2); }
+  .source-btn.active {
+    color: var(--cyan); border-color: var(--cyan);
+    background: rgba(0, 240, 255, 0.08);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.25), inset 0 0 8px rgba(0, 240, 255, 0.1);
+  }
+  .source-icon { width: 14px; height: 14px; display: inline-block; }
+
+  /* Left controls */
+  .controls {
+    grid-area: left; padding: 18px; overflow-y: auto;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .section-title {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--cyan);
+    text-transform: uppercase; letter-spacing: 2px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+    opacity: 0.4;
+  }
+
+  .control-group {
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 14px;
+  }
+
+  .control-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .control-row label {
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .control-row .value {
+    color: var(--lime); font-weight: 600;
+    text-shadow: 0 0 8px rgba(184, 255, 58, 0.5);
+    min-width: 40px; text-align: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px;
+    background: var(--bg-0); border-radius: 2px;
+    outline: none; margin: 6px 0 4px; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px;
+    background: var(--cyan); border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 4px rgba(0, 240, 255, 1);
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; background: var(--cyan);
+    border: none; border-radius: 50%; cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+  }
+
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .btn-row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  .btn {
+    background: var(--bg-1); border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 10px;
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; border-radius: 4px; transition: all 0.15s;
+  }
+  .btn:hover {
+    border-color: var(--cyan); color: var(--text);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+  }
+  .btn.primary {
+    background: rgba(0, 240, 255, 0.1);
+    border-color: var(--cyan); color: var(--cyan);
+  }
+  .btn.primary:hover {
+    background: rgba(0, 240, 255, 0.2);
+    box-shadow: 0 0 14px rgba(0, 240, 255, 0.5);
+  }
+  .btn.magenta { color: var(--magenta); }
+  .btn.magenta:hover {
+    border-color: var(--magenta);
+    box-shadow: 0 0 8px rgba(255, 43, 214, 0.4);
+  }
+
+  .toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; padding: 4px 0;
+  }
+  .toggle .switch {
+    width: 32px; height: 16px;
+    background: var(--bg-0); border: 1px solid var(--border);
+    border-radius: 8px; position: relative; transition: all 0.15s;
+  }
+  .toggle .switch::after {
+    content: ''; position: absolute; top: 1px; left: 1px;
+    width: 12px; height: 12px;
+    background: var(--text-mute); border-radius: 50%;
+    transition: all 0.18s;
+  }
+  .toggle.on .switch {
+    border-color: var(--lime); background: rgba(184, 255, 58, 0.1);
+  }
+  .toggle.on .switch::after {
+    left: 17px; background: var(--lime);
+    box-shadow: 0 0 6px rgba(184, 255, 58, 0.7);
+  }
+
+  /* Center 3D */
+  .center {
+    grid-area: center; position: relative;
+    background: radial-gradient(ellipse at center, #0a0f24 0%, #03040a 100%);
+    overflow: hidden;
+  }
+  #three-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+
+  /* Chip-style canvas overlays (from v2.6.3) */
+  .overlay { position: absolute; pointer-events: none; z-index: 5; }
+
+  .chip {
+    font-family: var(--mono);
+    background: var(--chip-bg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--text);
+    font-size: 11px; letter-spacing: 0.5px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+  .chip-row { display: flex; gap: 8px; align-items: center; }
+
+  .zone-scene { top: 14px; left: 14px; }
+  .scene-chip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+  }
+  .scene-chip .icon {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--yellow); border-radius: 3px;
+    box-shadow: 0 0 8px rgba(255,205,59,0.5);
+    flex-shrink: 0; position: relative;
+  }
+  .scene-chip .icon::after {
+    content: ''; position: absolute; inset: 3px;
+    background: var(--yellow); border-radius: 1px; opacity: 0.7;
+  }
+  .scene-chip .text { display: flex; flex-direction: column; }
+  .scene-chip .text .top {
+    font-size: 9px; color: var(--text-mute);
+    text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .scene-chip .text .bottom {
+    font-size: 13px; color: var(--yellow); font-weight: 700;
+    text-shadow: 0 0 6px rgba(255,205,59,0.4);
+    letter-spacing: 1px;
+  }
+
+  .zone-progress { top: 14px; right: 14px; }
+  .progress-chip { padding: 8px 12px; min-width: 130px; }
+  .progress-chip .top {
+    font-size: 9px; color: var(--text-mute);
+    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px;
+  }
+  .progress-chip .num {
+    font-size: 18px; color: var(--cyan); font-weight: 700;
+    text-shadow: 0 0 8px rgba(0,240,255,0.5);
+  }
+  .progress-chip .sep { color: var(--text-mute); margin: 0 4px; }
+  .progress-chip .tot { font-size: 13px; color: var(--text-dim); }
+
+  .zone-legend { bottom: 14px; left: 14px; }
+  .legend-chip { padding: 10px 12px; }
+  .legend-chip .title {
+    font-size: 9px; color: var(--text-mute);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .legend-chip .row {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 0;
+  }
+  .legend-chip .swatch {
+    width: 14px; height: 3px; border-radius: 1px; flex-shrink: 0;
+  }
+  .legend-chip .row.z .swatch { background: var(--cyan); box-shadow: 0 0 4px var(--cyan); }
+  .legend-chip .row.c .swatch { background: var(--magenta); box-shadow: 0 0 4px var(--magenta); }
+  .legend-chip .row.t .swatch { background: var(--lime); box-shadow: 0 0 4px var(--lime); }
+  .legend-chip .row.z .name { color: var(--cyan); }
+  .legend-chip .row.c .name { color: var(--magenta); }
+  .legend-chip .row.t .name { color: var(--lime); }
+  .legend-chip .row .desc { color: var(--text-dim); }
+
+  .zone-hints { bottom: 14px; right: 14px; }
+  .hints-chip {
+    padding: 8px 12px; font-size: 10px;
+    color: var(--text-mute); text-align: right;
+  }
+  .hints-chip .row {
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  }
+  .hints-chip .key {
+    color: var(--text-dim); padding: 1px 5px;
+    border: 1px solid var(--border-strong); border-radius: 2px;
+    font-size: 9px; background: var(--bg-0);
+  }
+
+  .info-banner {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    background: rgba(6,7,13,0.85); backdrop-filter: blur(8px);
+    border: 1px solid var(--cyan); border-radius: var(--radius);
+    padding: 12px 18px;
+    font-family: var(--mono); font-size: 11px; color: var(--text);
+    letter-spacing: 1px; z-index: 50;
+    pointer-events: none; transition: opacity 0.4s;
+    box-shadow: 0 0 24px rgba(0,240,255,0.2);
+  }
+  .info-banner.fade { opacity: 0; }
+  .info-banner .accent { color: var(--cyan); font-weight: 600; }
+
+  /* Right sidebar (from v2.6.3) */
+  .sidebar {
+    grid-area: right; padding: 14px; overflow-y: auto;
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .card-header {
+    font-family: var(--mono); font-size: 10px; color: var(--cyan);
+    text-transform: uppercase; letter-spacing: 1.8px;
+    padding: 8px 12px;
+    background: linear-gradient(90deg, rgba(0,240,255,0.06) 0%, transparent 80%);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-header .dot {
+    width: 6px; height: 6px;
+    background: var(--cyan); border-radius: 50%;
+    box-shadow: 0 0 6px var(--cyan);
+  }
+  .card-body { padding: 12px; }
+
+  .current-plane .card-body { padding: 10px 12px 12px; }
+  .cp-coords {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    margin-bottom: 10px;
+  }
+  .cp-coord {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 4px; text-align: center;
+    font-family: var(--mono);
+  }
+  .cp-coord .n {
+    color: var(--text-mute); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .cp-coord .v { font-size: 16px; font-weight: 700; line-height: 1.1; margin-top: 2px; }
+  .cp-coord.z { border-left: 2px solid var(--cyan); }
+  .cp-coord.z .v { color: var(--cyan); }
+  .cp-coord.c { border-left: 2px solid var(--magenta); }
+  .cp-coord.c .v { color: var(--magenta); }
+  .cp-coord.t { border-left: 2px solid var(--lime); }
+  .cp-coord.t .v { color: var(--lime); }
+
+  .cp-stage-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 8px;
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--mono); font-size: 10px;
+  }
+  .cp-stage-row .lbl { color: var(--text-mute); text-transform: uppercase; letter-spacing: 1px; }
+  .cp-stage-row .val {
+    color: var(--cyan); font-weight: 600;
+    text-shadow: 0 0 4px rgba(0,240,255,0.4);
+  }
+  .cp-progress-row {
+    margin-top: 6px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 8px;
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--mono); font-size: 10px;
+  }
+  .cp-progress-row .lbl { color: var(--text-mute); text-transform: uppercase; letter-spacing: 1px; }
+  .cp-progress-row .val { color: var(--lime); font-weight: 600; }
+
+  .simprints-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .simprints-list { flex: 1; overflow-y: auto; padding: 8px 12px 4px; }
+
+  .scene-block {
+    margin-bottom: 10px;
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+  }
+  .scene-block .scene-head {
+    font-family: var(--mono); font-size: 10px; color: var(--yellow);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 6px; padding-bottom: 4px;
+    border-bottom: 1px dashed rgba(255,205,59,0.25);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .scene-head .yel-dot {
+    width: 6px; height: 6px;
+    background: var(--yellow); border-radius: 50%;
+    box-shadow: 0 0 6px var(--yellow);
+  }
+  .simprint-entry {
+    font-family: var(--mono); font-size: 10px;
+    padding: 3px 0; line-height: 1.5;
+    display: flex; gap: 6px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .simprint-entry.visible { opacity: 1; }
+  .simprint-entry.glow { text-shadow: 0 0 6px rgba(0,240,255,0.4); }
+  .simprint-entry .idx { color: var(--yellow); min-width: 26px; font-weight: 700; }
+  .simprint-entry .coords {
+    color: var(--text-mute); min-width: 90px; font-size: 9px;
+  }
+  .simprint-entry .coords .z { color: var(--cyan); }
+  .simprint-entry .coords .c { color: var(--magenta); }
+  .simprint-entry .coords .t { color: var(--lime); }
+  .simprint-entry .hash { color: var(--text-dim); }
+
+  .scene-block .iscc-line {
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: var(--bg-0); border: 1px solid rgba(184,255,58,0.4);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 10px rgba(184,255,58,0.12);
+  }
+  .iscc-line .lbl {
+    color: var(--lime); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .iscc-line .code {
+    color: var(--text); font-size: 10px; word-break: break-all;
+    margin-top: 2px; line-height: 1.4;
+  }
+
+  /* Bottom data flow (from v2.6.3) */
+  .bottom {
+    grid-area: bottom;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+    padding: 12px 16px;
+    overflow: hidden;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .bottom-title {
+    font-family: var(--mono); font-size: 9px; color: var(--text-mute);
+    text-transform: uppercase; letter-spacing: 2px;
+    padding: 0 4px 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bottom-title .dot {
+    width: 6px; height: 6px;
+    background: var(--text-mute); border-radius: 50%;
+  }
+  .bottom-row {
+    display: flex; align-items: stretch; gap: 0;
+    height: 100%; min-height: 0;
+  }
+
+  .flow-box {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column;
+    background: var(--bg-0);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .flow-box-head {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+  }
+  .flow-box-head .icon {
+    width: 14px; height: 14px; flex-shrink: 0;
+    color: var(--text-mute);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .flow-box-head .icon svg { width: 14px; height: 14px; }
+  .flow-box-head .lbl {
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim);
+  }
+  .flow-box-body {
+    flex: 1; padding: 8px; min-height: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text-dim);
+    text-align: center; overflow: hidden;
+  }
+  .flow-box-body .detail {
+    font-size: 9px; color: var(--text-mute); margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .flow-box.s-source { border-color: rgba(0,240,255,0.4); }
+  .flow-box.s-source .icon, .flow-box.s-source .lbl { color: var(--cyan); }
+
+  .flow-box.active.s-extract { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,240,255,0.45); }
+  .flow-box.active.s-extract .icon, .flow-box.active.s-extract .lbl { color: var(--cyan); }
+  .flow-box.active.s-flatten { border-color: var(--yellow); box-shadow: 0 0 16px rgba(255,205,59,0.45); }
+  .flow-box.active.s-flatten .icon, .flow-box.active.s-flatten .lbl { color: var(--yellow); }
+  .flow-box.active.s-normalize { border-color: var(--magenta); box-shadow: 0 0 16px rgba(255,43,214,0.45); }
+  .flow-box.active.s-normalize .icon, .flow-box.active.s-normalize .lbl { color: var(--magenta); }
+  .flow-box.active.s-hash { border-color: var(--magenta); box-shadow: 0 0 16px rgba(255,43,214,0.45); }
+  .flow-box.active.s-hash .icon, .flow-box.active.s-hash .lbl { color: var(--magenta); }
+  .flow-box.active.s-index { border-color: var(--lime); box-shadow: 0 0 16px rgba(184,255,58,0.45); }
+  .flow-box.active.s-index .icon, .flow-box.active.s-index .lbl { color: var(--lime); }
+
+  #plane-preview-canvas {
+    width: 56px; height: 56px;
+    border: 1px solid var(--border); border-radius: 2px;
+    image-rendering: pixelated; background: #0a0f24;
+  }
+
+  .flatten-strip {
+    display: flex; gap: 1px; align-items: center;
+    height: 22px; width: 100%; max-width: 140px;
+    overflow: hidden;
+  }
+  .flatten-cell { flex: 1; height: 100%; border-radius: 1px; opacity: 0.5; min-width: 2px; }
+
+  .byte-flip { line-height: 1.4; }
+  .byte-flip .le { color: var(--text-mute); font-size: 10px; }
+  .byte-flip .ar { color: var(--text-mute); font-size: 9px; margin: 2px 0; }
+  .byte-flip .be { color: var(--magenta); font-size: 10px; font-weight: 600; }
+
+  .hash-glyph {
+    font-family: var(--mono); font-size: 28px; color: var(--magenta);
+    text-shadow: 0 0 12px rgba(255,43,214,0.6);
+    line-height: 1; font-weight: 700;
+  }
+
+  .iscc-final {
+    font-family: var(--mono); color: var(--text);
+    font-size: 10px; line-height: 1.4;
+    word-break: break-all;
+    text-shadow: 0 0 6px rgba(184,255,58,0.3);
+    max-width: 100%;
+  }
+  .flow-box.iscc-out { border-color: rgba(184,255,58,0.5); }
+  .flow-box.iscc-out .lbl { color: var(--lime); }
+  .flow-box.iscc-out .icon { color: var(--lime); }
+  .flow-box.iscc-out.pulse { animation: pulseGlow 1.2s ease-out; }
+  @keyframes pulseGlow {
+    0% { box-shadow: 0 0 12px rgba(184,255,58,0.2); }
+    50% { box-shadow: 0 0 28px rgba(184,255,58,0.85); transform: scale(1.02); }
+    100% { box-shadow: 0 0 12px rgba(184,255,58,0.2); }
+  }
+
+  .flow-arrow {
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; flex-shrink: 0;
+    color: var(--text-mute); font-family: var(--mono); font-size: 18px;
+    opacity: 0.5; transition: all 0.2s;
+  }
+  .flow-arrow.active {
+    color: var(--cyan); opacity: 1;
+    text-shadow: 0 0 8px rgba(0,240,255,0.6);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-0); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 280px 1fr 280px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============================ HEADER =========================== -->
+  <header class="panel">
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <div class="brand-text">
+        <div class="name">biocode</div>
+        <div class="sub">IMAGEWALK Playground :: v4</div>
+      </div>
+    </div>
+
+    <div class="source-toggle" id="source-toggle">
+      <button class="source-btn active" data-src="bioio">
+        <svg class="source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/>
+        </svg>
+        BioIO
+      </button>
+      <button class="source-btn" data-src="ngff">
+        <svg class="source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+        </svg>
+        NGFF/Zarr
+      </button>
+      <button class="source-btn" data-src="blitz">
+        <svg class="source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+        </svg>
+        OMERO Blitz
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================ LEFT PANEL =========================== -->
+  <aside class="panel controls">
+    <div>
+      <div class="section-title">Image Geometry</div>
+      <div class="control-group">
+        <div class="control-row">
+          <label>Scenes</label>
+          <span class="value" id="val-scenes">2</span>
+        </div>
+        <input type="range" id="ctl-scenes" min="1" max="3" value="2" />
+
+        <div class="control-row" style="margin-top:10px;">
+          <label>Z depth</label>
+          <span class="value" id="val-z">3</span>
+        </div>
+        <input type="range" id="ctl-z" min="1" max="8" value="3" />
+
+        <div class="control-row" style="margin-top:10px;">
+          <label>Channels</label>
+          <span class="value" id="val-c">2</span>
+        </div>
+        <input type="range" id="ctl-c" min="1" max="4" value="2" />
+
+        <div class="control-row" style="margin-top:10px;">
+          <label>Timepoints</label>
+          <span class="value" id="val-t">2</span>
+        </div>
+        <input type="range" id="ctl-t" min="1" max="6" value="2" />
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Playback</div>
+      <div class="control-group">
+        <div class="control-row">
+          <label>Speed</label>
+          <span class="value" id="val-speed">1.0x</span>
+        </div>
+        <input type="range" id="ctl-speed" min="1" max="50" value="10" />
+
+        <div class="btn-row three" style="margin-top:12px;">
+          <button class="btn primary" id="btn-play">Play</button>
+          <button class="btn" id="btn-step">Step</button>
+          <button class="btn magenta" id="btn-reset">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">View Options</div>
+      <div class="control-group">
+        <div class="toggle on" id="tgl-show-all">
+          <span>Show all planes</span>
+          <span class="switch"></span>
+        </div>
+        <div class="toggle on" id="tgl-show-trail" style="margin-top:8px;">
+          <span>Show traversal trail</span>
+          <span class="switch"></span>
+        </div>
+        <div class="toggle on" id="tgl-show-beam" style="margin-top:8px;">
+          <span>Show scanning beam</span>
+          <span class="switch"></span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Traversal Order</div>
+      <div class="control-group" style="font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.6;">
+        <span style="color:var(--cyan);">for</span> z <span style="color:var(--cyan);">in</span> range(<span style="color:var(--lime);">size_z</span>):<br/>
+        &nbsp;&nbsp;<span style="color:var(--cyan);">for</span> c <span style="color:var(--cyan);">in</span> range(<span style="color:var(--lime);">size_c</span>):<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--cyan);">for</span> t <span style="color:var(--cyan);">in</span> range(<span style="color:var(--lime);">size_t</span>):<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plane = ...<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--magenta);">hash</span>.update(bytes)
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================ CENTER =========================== -->
+  <main class="panel center">
+    <canvas id="three-canvas"></canvas>
+
+    <div class="overlay zone-scene">
+      <div class="chip scene-chip">
+        <div class="icon"></div>
+        <div class="text">
+          <div class="top">Active Scene</div>
+          <div class="bottom" id="scene-label">1 / 2</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay zone-progress">
+      <div class="chip progress-chip">
+        <div class="top">Plane (Scene)</div>
+        <div class="chip-row">
+          <span class="num" id="readout-current">0</span>
+          <span class="sep">/</span>
+          <span class="tot" id="readout-total">12</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay zone-legend">
+      <div class="chip legend-chip">
+        <div class="title">Axis Legend</div>
+        <div class="row z">
+          <div class="swatch"></div>
+          <span class="name">Z</span>
+          <span class="desc">depth</span>
+        </div>
+        <div class="row c">
+          <div class="swatch"></div>
+          <span class="name">C</span>
+          <span class="desc">channel</span>
+        </div>
+        <div class="row t">
+          <div class="swatch"></div>
+          <span class="name">T</span>
+          <span class="desc">time</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay zone-hints">
+      <div class="chip hints-chip">
+        <div class="row"><span class="key">drag</span>rotate</div>
+        <div class="row" style="margin-top:4px;"><span class="key">scroll</span>zoom</div>
+      </div>
+    </div>
+
+    <div class="info-banner" id="info-banner">
+      Adjust <span class="accent">geometry</span>, then press <span class="accent">Play</span> to run IMAGEWALK
+    </div>
+  </main>
+
+  <!-- ============================ RIGHT PANEL =========================== -->
+  <aside class="panel sidebar">
+    <div class="card current-plane">
+      <div class="card-header"><span class="dot"></span>Current Plane</div>
+      <div class="card-body">
+        <div class="cp-coords">
+          <div class="cp-coord z"><div class="n">Z</div><div class="v" id="cp-z">-</div></div>
+          <div class="cp-coord c"><div class="n">C</div><div class="v" id="cp-c">-</div></div>
+          <div class="cp-coord t"><div class="n">T</div><div class="v" id="cp-t">-</div></div>
+        </div>
+        <div class="cp-stage-row">
+          <span class="lbl">Stage</span>
+          <span class="val" id="cp-stage-name">--</span>
+        </div>
+        <div class="cp-progress-row">
+          <span class="lbl">Total Processed</span>
+          <span class="val"><span id="cp-processed">0</span> / <span id="cp-total">0</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card simprints-section" style="overflow:hidden;">
+      <div class="card-header"><span class="dot" style="background:var(--magenta);box-shadow:0 0 6px var(--magenta);"></span>Simprints</div>
+      <div class="simprints-list" id="simprints-list"></div>
+    </div>
+  </aside>
+
+  <!-- ============================ BOTTOM =========================== -->
+  <section class="panel bottom">
+    <div class="bottom-title">
+      <span class="dot"></span>Data Flow :: canonical byte stream &rarr; ISCC-SUM
+    </div>
+    <div class="bottom-row">
+
+      <div class="flow-box s-source" id="fb-source">
+        <div class="flow-box-head">
+          <span class="icon" id="fb-source-svg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/>
+            </svg>
+          </span>
+          <span class="lbl" id="fb-source-name">BioIO</span>
+        </div>
+        <div class="flow-box-body">
+          <div style="color:var(--cyan);font-size:11px;font-weight:600;">Source</div>
+          <div class="detail">read plane</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow" id="fa-0">&rarr;</div>
+
+      <div class="flow-box s-extract" id="fb-extract">
+        <div class="flow-box-head">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+          </span>
+          <span class="lbl">Extract</span>
+        </div>
+        <div class="flow-box-body">
+          <canvas id="plane-preview-canvas" width="56" height="56"></canvas>
+          <div class="detail">plane (Y &times; X)</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow" id="fa-1">&rarr;</div>
+
+      <div class="flow-box s-flatten" id="fb-flatten">
+        <div class="flow-box-head">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </span>
+          <span class="lbl">Flatten</span>
+        </div>
+        <div class="flow-box-body">
+          <div class="flatten-strip" id="flatten-strip"></div>
+          <div class="detail">row-major order</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow" id="fa-2">&rarr;</div>
+
+      <div class="flow-box s-normalize" id="fb-normalize">
+        <div class="flow-box-head">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+            </svg>
+          </span>
+          <span class="lbl">Normalize</span>
+        </div>
+        <div class="flow-box-body">
+          <div class="byte-flip" id="byte-flip">
+            <div class="le">[A1 B2 C3 D4]</div>
+            <div class="ar">&darr;</div>
+            <div class="be">[D4 C3 B2 A1]</div>
+          </div>
+          <div class="detail">big-endian</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow" id="fa-3">&rarr;</div>
+
+      <div class="flow-box s-hash" id="fb-hash">
+        <div class="flow-box-head">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+            </svg>
+          </span>
+          <span class="lbl">Hash</span>
+        </div>
+        <div class="flow-box-body">
+          <div class="hash-glyph" id="hash-glyph">#</div>
+          <div class="detail">DataHasher</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow" id="fa-4">&rarr;</div>
+
+      <div class="flow-box iscc-out s-index" id="fb-iscc">
+        <div class="flow-box-head">
+          <span class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2"/>
+            </svg>
+          </span>
+          <span class="lbl">ISCC-SUM</span>
+        </div>
+        <div class="flow-box-body">
+          <div class="iscc-final" id="iscc-code">awaiting playback...</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ============================ THREE.JS APP =========================== -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ================================================================
+   biocode v4 :: IMAGEWALK playground
+   - Multi-scene 5D bioimage model: Scene / Z / C / T / Y,X
+   - Traversal: Z (outer) -> C (mid) -> T (inner) per scene, scenes in order
+   - All scenes visible at once, side-by-side along world X
+   - One continuous trail line weaves through every plane in order
+   - Per-plane sub-stages: extract -> flatten -> normalize -> hash -> index
+   - No auto-rotation
+================================================================ */
+
+const STAGES = ['extract','flatten','normalize','hash','index'];
+const FLOW_BOX_IDS = ['fb-extract','fb-flatten','fb-normalize','fb-hash','fb-iscc'];
+const FLOW_BOX_ELS = FLOW_BOX_IDS.map(id => document.getElementById(id));
+const FA_ELS = [0,1,2,3,4].map(i => document.getElementById('fa-' + i));
+
+const CHANNEL_HUES = [185, 305, 80, 50];
+const CHANNEL_COLORS = [0x00f0ff, 0xff2bd6, 0xb8ff3a, 0xffcd3b];
+
+const STEP_Y = 1.4, STEP_X = 1.6, STEP_Z = 1.6, PLANE_SIZE = 1.1;
+const SCENE_GAP = 3.0;
+
+const SOURCE_SVGS = {
+  bioio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/></svg>`,
+  ngff:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>`,
+  blitz: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+};
+const SOURCE_NAMES = { bioio: 'BioIO', ngff: 'NGFF/Zarr', blitz: 'OMERO Blitz' };
+
+/* ---------- Application state ---------- */
+const state = {
+  scenes: 2,
+  sceneIdx: 0,
+  planeInScene: 0,
+  globalPlaneIdx: 0,
+  sizeZ: 3,
+  sizeC: 2,
+  sizeT: 2,
+  planeY: 64,
+  planeX: 64,
+  speed: 1.0,
+  playing: false,
+  source: 'bioio',
+  currentSubStage: -1,
+  planesPerScene: 0,
+  totalAllPlanes: 0,
+  stepInterval: 800,
+  // view toggles
+  showAll: true,
+  showTrail: true,
+  showBeam: true,
+  // per-scene fake ISCC list, populated as scenes complete
+  sceneIscc: [],
+};
+
+/* ---------- Three.js setup ---------- */
+const canvas = document.getElementById('three-canvas');
+const scene3 = new THREE.Scene();
+scene3.fog = new THREE.FogExp2(0x03040a, 0.02);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+camera.position.set(8, 6, 14);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+
+const orbitControls = new OrbitControls(camera, canvas);
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.08;
+orbitControls.rotateSpeed = 0.6;
+orbitControls.target.set(0, 0, 0);
+
+scene3.add(new THREE.AmbientLight(0x404060, 0.6));
+const keyLight = new THREE.DirectionalLight(0x88aaff, 0.4);
+keyLight.position.set(5, 10, 5);
+scene3.add(keyLight);
+
+/* ---------- 3D state holders ---------- */
+let sceneGroups = [];   // one Group per scene
+let trailLine = null;   // single line through ALL planes in ALL scenes
+let cursorBox = null;
+let beamGroup = null;
+
+/* ---------- Procedural plane textures ---------- */
+const textureCache = new Map();
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = a;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function makePlaneTexture(seed, channelHue) {
+  const key = `${seed}_${channelHue}`;
+  if (textureCache.has(key)) return textureCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#04060f';
+  ctx.fillRect(0, 0, 128, 128);
+  const rand = mulberry32(seed * 9301 + 49297);
+  const blobs = 4 + Math.floor(rand() * 6);
+  for (let i = 0; i < blobs; i++) {
+    const x = rand() * 128, y = rand() * 128, r = 8 + rand() * 32;
+    const intensity = 0.4 + rand() * 0.6;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, `hsla(${channelHue}, 95%, ${55 + intensity * 25}%, ${intensity})`);
+    grad.addColorStop(1, `hsla(${channelHue}, 95%, 35%, 0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 128);
+  }
+  const imgData = ctx.getImageData(0, 0, 128, 128);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const n = (rand() - 0.5) * 24;
+    data[i] = Math.max(0, Math.min(255, data[i] + n));
+    data[i+1] = Math.max(0, Math.min(255, data[i+1] + n));
+    data[i+2] = Math.max(0, Math.min(255, data[i+2] + n));
+  }
+  ctx.putImageData(imgData, 0, 0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 8; i++) {
+    ctx.beginPath(); ctx.moveTo(i * 16, 0); ctx.lineTo(i * 16, 128); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * 16); ctx.lineTo(128, i * 16); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  textureCache.set(key, tex);
+  return tex;
+}
+
+/* ---------- Axis tip sprite chip (Z/C/T) ---------- */
+function makeAxisTipSprite(letter, colorHex) {
+  const c = document.createElement('canvas');
+  c.width = 96; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 96, 64);
+
+  const w = 36, h = 36;
+  const x = (96 - w) / 2, y = (64 - h) / 2;
+
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = colorHex + 'cc';
+  ctx.fillStyle = 'rgba(6, 7, 13, 0.92)';
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = colorHex;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.stroke();
+
+  ctx.font = 'bold 20px monospace';
+  ctx.fillStyle = colorHex;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(letter, 48, 32);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.7, 0.47, 1);
+  return sprite;
+}
+
+/* ---------- Scene label sprite for scene index ---------- */
+function makeSceneLabelSprite(text) {
+  const c = document.createElement('canvas');
+  c.width = 192; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 192, 64);
+
+  const w = 130, h = 36;
+  const x = (192 - w) / 2, y = (64 - h) / 2;
+
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = 'rgba(255,205,59,0.6)';
+  ctx.fillStyle = 'rgba(6,7,13,0.92)';
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 6); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = '#ffcd3b';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 6); ctx.stroke();
+
+  ctx.font = 'bold 16px monospace';
+  ctx.fillStyle = '#ffcd3b';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 96, 32);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(1.5, 0.5, 1);
+  return sprite;
+}
+
+/* ---------- Build one scene group ---------- */
+function buildSceneGroup(sceneIdx, xOffset) {
+  const group = new THREE.Group();
+  group.position.x = xOffset;
+  group.userData = { sceneIdx, meshes: [] };
+
+  const meshes = [];
+  const oZ = (state.sizeZ - 1) * STEP_Y * 0.5;
+  const oC = (state.sizeC - 1) * STEP_X * 0.5;
+  const oT = (state.sizeT - 1) * STEP_Z * 0.5;
+
+  let idx = 0;
+  for (let z = 0; z < state.sizeZ; z++) {
+    for (let c = 0; c < state.sizeC; c++) {
+      for (let t = 0; t < state.sizeT; t++) {
+        const tex = makePlaneTexture(
+          sceneIdx * 1000 + z * 100 + c * 10 + t,
+          CHANNEL_HUES[c % CHANNEL_HUES.length]
+        );
+        const geom = new THREE.PlaneGeometry(PLANE_SIZE, PLANE_SIZE);
+        const mat = new THREE.MeshBasicMaterial({
+          map: tex, transparent: true, opacity: 0.18,
+          side: THREE.DoubleSide, depthWrite: false,
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.set(c * STEP_X - oC, z * STEP_Y - oZ, t * STEP_Z - oT);
+
+        const halo = new THREE.LineSegments(
+          new THREE.EdgesGeometry(geom),
+          new THREE.LineBasicMaterial({
+            color: CHANNEL_COLORS[c % CHANNEL_COLORS.length],
+            transparent: true, opacity: 0.4,
+          })
+        );
+        halo.rotation.x = -Math.PI / 2;
+        halo.position.copy(mesh.position);
+
+        // Outer glow plane, lit only on active plane
+        const glowGeom = new THREE.PlaneGeometry(PLANE_SIZE * 1.6, PLANE_SIZE * 1.6);
+        const glowMat = new THREE.MeshBasicMaterial({
+          color: CHANNEL_COLORS[c % CHANNEL_COLORS.length],
+          transparent: true, opacity: 0.0,
+          side: THREE.DoubleSide, depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        });
+        const glow = new THREE.Mesh(glowGeom, glowMat);
+        glow.rotation.x = -Math.PI / 2;
+        glow.position.copy(mesh.position);
+        glow.position.y -= 0.001;
+
+        mesh.userData = { z, c, t, idx, halo, glow };
+        meshes.push(mesh);
+        group.add(glow);
+        group.add(mesh);
+        group.add(halo);
+        idx++;
+      }
+    }
+  }
+
+  // Axis lines + tip sprite labels
+  const axG = new THREE.Group();
+  const axLen = 0.9;
+  const axes = [
+    { p1: [-oC - axLen, -oZ - 0.5, -oT - axLen], p2: [-oC - axLen, oZ + 0.5, -oT - axLen], color: 0x00f0ff, hex: '#00f0ff', letter: 'Z' },
+    { p1: [-oC - 0.5, -oZ - axLen, -oT - axLen], p2: [oC + 0.5, -oZ - axLen, -oT - axLen], color: 0xff2bd6, hex: '#ff2bd6', letter: 'C' },
+    { p1: [-oC - axLen, -oZ - axLen, -oT - 0.5], p2: [-oC - axLen, -oZ - axLen, oT + 0.5], color: 0xb8ff3a, hex: '#b8ff3a', letter: 'T' },
+  ];
+  axes.forEach(a => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([...a.p1, ...a.p2], 3));
+    const line = new THREE.Line(g, new THREE.LineBasicMaterial({
+      color: a.color, transparent: true, opacity: 0.7,
+    }));
+    axG.add(line);
+
+    const sprite = makeAxisTipSprite(a.letter, a.hex);
+    const dir = [a.p2[0]-a.p1[0], a.p2[1]-a.p1[1], a.p2[2]-a.p1[2]];
+    const len = Math.sqrt(dir[0]**2 + dir[1]**2 + dir[2]**2);
+    const ext = 0.35;
+    sprite.position.set(
+      a.p2[0] + (dir[0]/len) * ext,
+      a.p2[1] + (dir[1]/len) * ext,
+      a.p2[2] + (dir[2]/len) * ext,
+    );
+    axG.add(sprite);
+  });
+  group.add(axG);
+
+  // Scene label floating above the lattice
+  const sceneLabel = makeSceneLabelSprite(`SCENE ${sceneIdx + 1}`);
+  sceneLabel.position.set(0, oZ + 1.4, 0);
+  group.add(sceneLabel);
+
+  group.userData.meshes = meshes;
+  return group;
+}
+
+/* ---------- Layout helpers ---------- */
+function getSceneSpacing() {
+  return (state.sizeC - 1) * STEP_X + PLANE_SIZE + SCENE_GAP;
+}
+
+function getWorldPlanePos(sceneIdx, planeIdxInScene) {
+  const g = sceneGroups[sceneIdx];
+  if (!g) return null;
+  const m = g.userData.meshes[planeIdxInScene];
+  if (!m) return null;
+  return new THREE.Vector3(
+    m.position.x + g.position.x,
+    m.position.y + g.position.y,
+    m.position.z + g.position.z,
+  );
+}
+
+function getGlobalPlane(globalIdx) {
+  const sceneIdx = Math.floor(globalIdx / state.planesPerScene);
+  const planeIdx = globalIdx % state.planesPerScene;
+  return { sceneIdx, planeIdx };
+}
+
+/* ---------- Full rebuild ---------- */
+function rebuild() {
+  // Dispose old scene groups
+  sceneGroups.forEach(g => {
+    g.traverse(o => {
+      if (o.isMesh || o.isLine || o.isSprite || o.isLineSegments) {
+        o.geometry?.dispose();
+        if (o.material?.map) o.material.map.dispose();
+        o.material?.dispose();
+      }
+    });
+    scene3.remove(g);
+  });
+  sceneGroups = [];
+
+  // Compute totals
+  state.planesPerScene = state.sizeZ * state.sizeC * state.sizeT;
+  state.totalAllPlanes = state.planesPerScene * state.scenes;
+  state.sceneIdx = 0;
+  state.planeInScene = 0;
+  state.globalPlaneIdx = 0;
+  state.currentSubStage = -1;
+  state.sceneIscc = new Array(state.scenes).fill('');
+
+  // Build all scenes at once
+  const spacing = getSceneSpacing();
+  const totalWidth = (state.scenes - 1) * spacing;
+  const xStart = -totalWidth / 2;
+  for (let i = 0; i < state.scenes; i++) {
+    const g = buildSceneGroup(i, xStart + i * spacing);
+    scene3.add(g);
+    sceneGroups.push(g);
+  }
+
+  // Dispose old cursor / trail / beam
+  if (cursorBox) {
+    cursorBox.geometry.dispose(); cursorBox.material.dispose();
+    scene3.remove(cursorBox); cursorBox = null;
+  }
+  if (trailLine) {
+    trailLine.geometry.dispose(); trailLine.material.dispose();
+    scene3.remove(trailLine); trailLine = null;
+  }
+  if (beamGroup) {
+    beamGroup.traverse(o => {
+      o.geometry?.dispose(); o.material?.dispose();
+    });
+    scene3.remove(beamGroup); beamGroup = null;
+  }
+
+  // Cursor box at world level (positioned to active plane)
+  const cgeom = new THREE.BoxGeometry(PLANE_SIZE * 1.18, 0.06, PLANE_SIZE * 1.18);
+  const cmat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0,
+    wireframe: true, depthWrite: false,
+  });
+  cursorBox = new THREE.Mesh(cgeom, cmat);
+  cursorBox.visible = false;
+  scene3.add(cursorBox);
+
+  // Continuous trail across ALL scenes (one Line, world coords)
+  const totalPts = Math.max(state.totalAllPlanes, 2);
+  const positions = new Float32Array(totalPts * 3);
+  const trailGeom = new THREE.BufferGeometry();
+  trailGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  trailGeom.setDrawRange(0, 0);
+  const trailMat = new THREE.LineBasicMaterial({
+    color: 0xffcd3b, transparent: true, opacity: 0.78,
+  });
+  trailLine = new THREE.Line(trailGeom, trailMat);
+  scene3.add(trailLine);
+
+  // Scanning beam (world level, positioned to active plane)
+  beamGroup = new THREE.Group();
+  const beamGeom = new THREE.PlaneGeometry(PLANE_SIZE * 1.5, 0.04);
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.0,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+  });
+  const beam = new THREE.Mesh(beamGeom, beamMat);
+  beam.rotation.x = -Math.PI / 2;
+  beamGroup.add(beam);
+  scene3.add(beamGroup);
+
+  // Reset UI bits
+  document.getElementById('simprints-list').innerHTML = '';
+  document.getElementById('iscc-code').textContent = 'awaiting playback...';
+  clearStages();
+  document.getElementById('cp-z').textContent = '-';
+  document.getElementById('cp-c').textContent = '-';
+  document.getElementById('cp-t').textContent = '-';
+
+  refreshHUD();
+  frameCamera();
+}
+
+function frameCamera() {
+  const r = Math.max(state.sizeZ, state.sizeC, state.sizeT);
+  const spacing = getSceneSpacing();
+  const totalWidth = (state.scenes - 1) * spacing;
+  const sceneRadius = Math.sqrt(
+    ((state.sizeC - 1) * STEP_X / 2 + PLANE_SIZE) ** 2 +
+    ((state.sizeZ - 1) * STEP_Y / 2 + PLANE_SIZE) ** 2 +
+    ((state.sizeT - 1) * STEP_Z / 2 + PLANE_SIZE) ** 2
+  );
+  const dist = 4 + sceneRadius * 1.6 + totalWidth * 0.55;
+  camera.position.set(dist * 0.55, dist * 0.45, dist * 0.85);
+  camera.lookAt(0, 0, 0);
+  orbitControls.target.set(0, 0, 0);
+}
+
+/* ---------- Stage UI updates ---------- */
+function setActiveStage(stageIdx) {
+  FLOW_BOX_ELS.forEach((el, i) => {
+    el.classList.toggle('active', i === stageIdx);
+  });
+  FA_ELS.forEach((el, i) => {
+    el.classList.toggle('active', i <= stageIdx);
+  });
+  document.getElementById('cp-stage-name').textContent =
+    stageIdx >= 0 ? STAGES[stageIdx].toUpperCase() : '--';
+}
+function clearStages() {
+  FLOW_BOX_ELS.forEach(el => el.classList.remove('active'));
+  FA_ELS.forEach(el => el.classList.remove('active'));
+  document.getElementById('cp-stage-name').textContent = '--';
+}
+
+/* ---------- Sub-stage processor ---------- */
+function processSubStage() {
+  if (state.globalPlaneIdx >= state.totalAllPlanes) return false;
+
+  const sceneGroup = sceneGroups[state.sceneIdx];
+  if (!sceneGroup) return false;
+  const mesh = sceneGroup.userData.meshes[state.planeInScene];
+  if (!mesh) return false;
+  const { z, c, t } = mesh.userData;
+
+  state.currentSubStage++;
+
+  if (state.currentSubStage >= 5) {
+    // Finished plane: emit trail point, advance counters
+    advancePlane();
+    return true;
+  }
+
+  setActiveStage(state.currentSubStage);
+
+  switch (state.currentSubStage) {
+    case 0: // EXTRACT
+      mesh.material.opacity = 1.0;
+      mesh.userData.halo.material.opacity = 1.0;
+      mesh.userData.glow.material.opacity = 0.6;
+      cursorBox.visible = true;
+      cursorBox.position.copy(mesh.position);
+      cursorBox.position.add(sceneGroup.position);
+      cursorBox.material.opacity = 0.85;
+      if (state.showBeam && beamGroup) {
+        beamGroup.position.copy(mesh.position);
+        beamGroup.position.add(sceneGroup.position);
+        beamGroup.children[0].material.opacity = 1.0;
+      }
+      updatePlanePreview(mesh);
+      document.getElementById('cp-z').textContent = z;
+      document.getElementById('cp-c').textContent = c;
+      document.getElementById('cp-t').textContent = t;
+      break;
+    case 1: // FLATTEN
+      updateFlattenStrip(c);
+      break;
+    case 2: // NORMALIZE
+      updateByteFlip();
+      break;
+    case 3: // HASH
+      break;
+    case 4: // INDEX
+      addSimprintEntry(state.sceneIdx, state.planeInScene, z, c, t);
+      // emit trail point for this completed plane (in world coords)
+      emitTrailPoint(state.sceneIdx, state.planeInScene);
+      break;
+  }
+
+  refreshHUD();
+  return true;
+}
+
+function advancePlane() {
+  state.currentSubStage = -1;
+  state.globalPlaneIdx++;
+  state.planeInScene++;
+
+  // Did we just finish a scene?
+  if (state.planeInScene >= state.planesPerScene) {
+    finalizeScene(state.sceneIdx);
+    state.sceneIdx++;
+    state.planeInScene = 0;
+
+    if (state.sceneIdx >= state.scenes) {
+      // All done
+      state.playing = false;
+      document.getElementById('btn-play').textContent = 'Play';
+      cursorBox.visible = false;
+      clearStages();
+      refreshHUD();
+      return;
+    }
+  }
+
+  refreshHUD();
+}
+
+function finalizeScene(sceneIdx) {
+  const code = generateFakeISCC(sceneIdx, state.sizeZ, state.sizeC, state.sizeT);
+  state.sceneIscc[sceneIdx] = code;
+  appendIsccLine(sceneIdx, code);
+  document.getElementById('iscc-code').textContent = code;
+  flashISCC();
+}
+
+function appendIsccLine(sceneIdx, code) {
+  const block = document.getElementById('scene-block-' + sceneIdx);
+  if (!block) return;
+  const line = document.createElement('div');
+  line.className = 'iscc-line';
+  line.innerHTML = `<div class="lbl">ISCC-SUM</div><div class="code">${code}</div>`;
+  block.appendChild(line);
+}
+
+function flashISCC() {
+  const el = document.getElementById('fb-iscc');
+  el.classList.remove('pulse');
+  void el.offsetWidth;
+  el.classList.add('pulse');
+}
+
+/* ---------- Trail ---------- */
+function emitTrailPoint(sceneIdx, planeIdxInScene) {
+  if (!trailLine) return;
+  const p = getWorldPlanePos(sceneIdx, planeIdxInScene);
+  if (!p) return;
+  const pos = trailLine.geometry.attributes.position;
+  pos.setXYZ(state.globalPlaneIdx, p.x, p.y, p.z);
+  pos.needsUpdate = true;
+  trailLine.geometry.setDrawRange(0, state.globalPlaneIdx + 1);
+  trailLine.geometry.computeBoundingSphere();
+}
+
+/* ---------- Simprints log ---------- */
+function addSimprintEntry(sceneIdx, planeIdx, z, c, t) {
+  const log = document.getElementById('simprints-list');
+  let block = document.getElementById('scene-block-' + sceneIdx);
+  if (!block) {
+    block = document.createElement('div');
+    block.className = 'scene-block';
+    block.id = 'scene-block-' + sceneIdx;
+    const head = document.createElement('div');
+    head.className = 'scene-head';
+    head.innerHTML = `<span class="yel-dot"></span>Scene ${sceneIdx + 1}`;
+    block.appendChild(head);
+    log.appendChild(block);
+  }
+  const fakeHash = randomSimprint(state.globalPlaneIdx, sceneIdx);
+  const entry = document.createElement('div');
+  entry.className = 'simprint-entry';
+  entry.innerHTML = `<span class="idx">#${planeIdx + 1}</span><span class="coords"><span class="z">z=${z}</span> <span class="c">c=${c}</span> <span class="t">t=${t}</span></span><span class="hash">${fakeHash}</span>`;
+  block.appendChild(entry);
+
+  requestAnimationFrame(() => {
+    entry.classList.add('visible', 'glow');
+    setTimeout(() => entry.classList.remove('glow'), 600);
+  });
+
+  log.scrollTop = log.scrollHeight;
+}
+
+/* ---------- HUD ---------- */
+function refreshHUD() {
+  document.getElementById('readout-current').textContent = state.planeInScene;
+  document.getElementById('readout-total').textContent = state.planesPerScene;
+  document.getElementById('cp-processed').textContent = state.globalPlaneIdx;
+  document.getElementById('cp-total').textContent = state.totalAllPlanes;
+  document.getElementById('scene-label').textContent =
+    `${Math.min(state.sceneIdx + 1, state.scenes)} / ${state.scenes}`;
+}
+
+/* ---------- Per-stage panel updates ---------- */
+function updatePlanePreview(mesh) {
+  const previewCanvas = document.getElementById('plane-preview-canvas');
+  const ctx = previewCanvas.getContext('2d');
+  ctx.clearRect(0, 0, 56, 56);
+  if (mesh.material.map && mesh.material.map.source?.data) {
+    ctx.drawImage(mesh.material.map.source.data, 0, 0, 56, 56);
+  } else {
+    ctx.fillStyle = '#0a0f24';
+    ctx.fillRect(0, 0, 56, 56);
+  }
+}
+
+function updateFlattenStrip(channelIdx) {
+  const strip = document.getElementById('flatten-strip');
+  strip.innerHTML = '';
+  const hue = CHANNEL_HUES[channelIdx % CHANNEL_HUES.length];
+  const rng = mulberry32(state.globalPlaneIdx * 7 + state.sceneIdx * 41);
+  for (let i = 0; i < 28; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'flatten-cell';
+    const brightness = 35 + rng() * 55;
+    cell.style.background = `hsl(${hue}, 85%, ${brightness}%)`;
+    cell.style.opacity = (0.5 + rng() * 0.5).toString();
+    strip.appendChild(cell);
+  }
+}
+
+function updateByteFlip() {
+  const rng = mulberry32(state.globalPlaneIdx * 13 + state.sceneIdx * 97 + 42);
+  const hex = '0123456789ABCDEF';
+  const bytes = [];
+  for (let i = 0; i < 4; i++) bytes.push(hex[Math.floor(rng() * 16)] + hex[Math.floor(rng() * 16)]);
+  document.getElementById('byte-flip').innerHTML =
+    `<div class="le">[${bytes.join(' ')}]</div><div class="ar">&darr;</div><div class="be">[${bytes.slice().reverse().join(' ')}]</div>`;
+}
+
+/* ---------- Fake string generators (visual only) ---------- */
+function generateFakeISCC(sceneIdx, z, c, t) {
+  const seed = sceneIdx * 1009 + z * 113 + c * 31 + t * 7 + 1;
+  const rng = mulberry32(seed);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let body = '';
+  for (let i = 0; i < 44; i++) body += chars[Math.floor(rng() * chars.length)];
+  return `ISCC:KACWS${body}`;
+}
+function randomSimprint(planeIdx, sceneIdx) {
+  const rng = mulberry32(planeIdx * 17 + sceneIdx * 401 + 7);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let s = '';
+  for (let i = 0; i < 12; i++) s += chars[Math.floor(rng() * chars.length)];
+  return s + '...';
+}
+
+/* ---------- Plane opacity / glow management ---------- */
+function decayPlanes(dt) {
+  sceneGroups.forEach((g, gi) => {
+    const meshes = g.userData.meshes;
+    const sceneDone = gi < state.sceneIdx;
+    const sceneActive = gi === state.sceneIdx;
+
+    meshes.forEach((m, mi) => {
+      const isCurrent =
+        sceneActive && mi === state.planeInScene && state.currentSubStage >= 0;
+      const isProcessed =
+        sceneDone || (sceneActive && mi < state.planeInScene);
+
+      let targetMat, targetHalo;
+      if (isCurrent) {
+        // Active values are set directly in processSubStage; preserve.
+        targetMat = m.material.opacity;
+        targetHalo = m.userData.halo.material.opacity;
+      } else if (isProcessed) {
+        targetMat = 0.55;
+        targetHalo = 0.85;
+      } else if (state.showAll) {
+        targetMat = 0.18;
+        targetHalo = 0.4;
+      } else {
+        targetMat = 0.0;
+        targetHalo = 0.0;
+      }
+
+      if (!isCurrent) {
+        m.material.opacity += (targetMat - m.material.opacity) * Math.min(1, dt * 0.0035);
+        m.userData.halo.material.opacity += (targetHalo - m.userData.halo.material.opacity) * Math.min(1, dt * 0.0035);
+        if (m.userData.glow.material.opacity > 0) {
+          m.userData.glow.material.opacity = Math.max(0, m.userData.glow.material.opacity - dt * 0.0025);
+        }
+      } else {
+        // Pulse the glow on the active plane
+        const tt = performance.now() * 0.004;
+        m.userData.glow.material.opacity = 0.45 + Math.sin(tt) * 0.18;
+      }
+    });
+  });
+
+  // Cursor box fade
+  if (cursorBox && cursorBox.visible) {
+    if (state.currentSubStage < 0) {
+      cursorBox.material.opacity = Math.max(0, cursorBox.material.opacity - dt * 0.003);
+      if (cursorBox.material.opacity <= 0.01) cursorBox.visible = false;
+    } else {
+      const tt = performance.now() * 0.005;
+      cursorBox.material.opacity = 0.7 + Math.sin(tt) * 0.2;
+    }
+  }
+
+  // Beam fade
+  if (beamGroup) {
+    const bm = beamGroup.children[0].material;
+    if (state.currentSubStage < 0 || !state.showBeam) {
+      bm.opacity = Math.max(0, bm.opacity - dt * 0.0025);
+    }
+  }
+}
+
+/* ---------- Animation loop (NO auto-rotation) ---------- */
+let lastFrame = performance.now();
+let subStageAccum = 0;
+let beamPhase = 0;
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = now - lastFrame;
+  lastFrame = now;
+
+  orbitControls.update();
+
+  if (state.playing) {
+    const subDuration = (state.stepInterval / state.speed) / 5;
+    subStageAccum += dt;
+    if (subStageAccum >= subDuration) {
+      subStageAccum -= subDuration;
+      if (subStageAccum > subDuration) subStageAccum = 0;
+      processSubStage();
+    }
+  }
+
+  // beam oscillation within the active plane
+  beamPhase += dt * 0.005 * state.speed;
+  if (beamGroup) {
+    const s = Math.sin(beamPhase) * (PLANE_SIZE * 0.5);
+    // Apply beam local Y shift via the inner mesh, keeping group at plane center
+    beamGroup.children[0].position.set(0, 0.005, s);
+  }
+
+  // hash glyph spin
+  const hashGlyph = document.getElementById('hash-glyph');
+  if (state.playing && hashGlyph) {
+    hashGlyph.style.transform = `rotate(${(now / 9) % 360}deg)`;
+  }
+
+  decayPlanes(dt);
+
+  if (trailLine) trailLine.visible = state.showTrail;
+  if (beamGroup) beamGroup.visible = state.showBeam;
+
+  renderer.render(scene3, camera);
+}
+requestAnimationFrame(animate);
+
+/* ---------- Resize ---------- */
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ============================ UI wiring =========================== */
+const bindRange = (id, valId, fn, fmt) => {
+  const el = document.getElementById(id);
+  const vel = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    const v = parseInt(el.value, 10);
+    vel.textContent = fmt ? fmt(v) : v;
+    fn(v);
+  });
+};
+
+function resetAndRebuild() {
+  state.playing = false;
+  document.getElementById('btn-play').textContent = 'Play';
+  rebuild();
+}
+
+bindRange('ctl-scenes', 'val-scenes', v => { state.scenes = v; resetAndRebuild(); });
+bindRange('ctl-z', 'val-z', v => { state.sizeZ = v; resetAndRebuild(); });
+bindRange('ctl-c', 'val-c', v => { state.sizeC = v; resetAndRebuild(); });
+bindRange('ctl-t', 'val-t', v => { state.sizeT = v; resetAndRebuild(); });
+bindRange('ctl-speed', 'val-speed', v => { state.speed = v / 10; }, v => `${(v / 10).toFixed(1)}x`);
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (state.globalPlaneIdx >= state.totalAllPlanes) {
+    // Restart from beginning if we're done
+    rebuild();
+  }
+  state.playing = !state.playing;
+  document.getElementById('btn-play').textContent = state.playing ? 'Pause' : 'Play';
+  if (state.playing) {
+    subStageAccum = 0;
+    fadeInfoBanner();
+  }
+});
+
+document.getElementById('btn-step').addEventListener('click', () => {
+  state.playing = false;
+  document.getElementById('btn-play').textContent = 'Play';
+  if (state.globalPlaneIdx >= state.totalAllPlanes) return;
+  // Advance one full plane (5 sub-stages, then commit)
+  if (state.currentSubStage >= 0) {
+    while (state.currentSubStage < 4) processSubStage();
+    processSubStage();
+  } else {
+    for (let i = 0; i < 5; i++) processSubStage();
+    processSubStage();
+  }
+  fadeInfoBanner();
+});
+
+document.getElementById('btn-reset').addEventListener('click', resetAndRebuild);
+
+/* Toggles */
+function bindToggle(id, fn) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', () => {
+    el.classList.toggle('on');
+    fn(el.classList.contains('on'));
+  });
+}
+bindToggle('tgl-show-all', v => { state.showAll = v; });
+bindToggle('tgl-show-trail', v => { state.showTrail = v; });
+bindToggle('tgl-show-beam', v => { state.showBeam = v; });
+
+/* Source toggle — visual only; same hash */
+document.querySelectorAll('.source-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const src = btn.dataset.src;
+    state.source = src;
+    document.getElementById('fb-source-svg').innerHTML = SOURCE_SVGS[src];
+    document.getElementById('fb-source-name').textContent = SOURCE_NAMES[src];
+    const codeEl = document.getElementById('iscc-code');
+    if (codeEl.textContent && !codeEl.textContent.startsWith('awaiting')) flashISCC();
+  });
+});
+
+/* Info banner */
+let bannerFaded = false;
+function fadeInfoBanner() {
+  if (bannerFaded) return;
+  bannerFaded = true;
+  setTimeout(() => {
+    document.getElementById('info-banner').classList.add('fade');
+  }, 600);
+}
+
+/* Polyfill for roundRect on older browsers */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'number') r = [r, r, r, r];
+    this.beginPath();
+    this.moveTo(x + r[0], y);
+    this.lineTo(x + w - r[1], y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+    this.lineTo(x + w, y + h - r[2]);
+    this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+    this.lineTo(x + r[3], y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+    this.lineTo(x, y + r[0]);
+    this.quadraticCurveTo(x, y, x + r[0], y);
+    this.closePath();
+    return this;
+  };
+}
+
+/* ---------- Initial build ---------- */
+rebuild();
+</script>
+</body>
+</html>
