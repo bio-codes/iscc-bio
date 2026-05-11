@@ -2,8 +2,35 @@
 name = "iscc-bio"
 version = "0.1.0"
 description = "BioCodes - ISCC Processing for BioImaging Data"
+authors = [{ name = "Titusz", email = "tp@iscc.io" }]
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.12"
+keywords = [
+    "iscc",
+    "bioimage",
+    "bioimaging",
+    "identifier",
+    "hash",
+    "imagewalk",
+    "ome",
+    "microscopy",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "iscc-core>=1.2.2",
     "iscc-sum>=0.1.0",
@@ -14,6 +41,13 @@ dependencies = [
     "bioio>=3.0.0",
     "loguru>=0.7.3",
 ]
+
+[project.urls]
+Homepage = "https://bio.iscc.codes"
+Repository = "https://github.com/bio-codes/iscc-bio"
+Documentation = "https://bio.iscc.codes"
+Issues = "https://github.com/bio-codes/iscc-bio/issues"
+
 
 [project.optional-dependencies]
 # OMERO support
@@ -89,8 +123,8 @@ iscc-bio = "iscc_bio.cli:cli"
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["iscc_bio"]
+[tool.setuptools.packages.find]
+include = ["iscc_bio*"]
 
 [tool.uv]
 package = true
