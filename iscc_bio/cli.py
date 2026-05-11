@@ -7,7 +7,6 @@ from pathlib import Path
 
 import click
 
-from iscc_bio.biocode import generate_biocode
 from iscc_bio.imagecode import format_output, generate_imagecode
 from iscc_bio.scene import extract_scenes
 from iscc_bio.thumb import extract_thumbnail
@@ -472,81 +471,25 @@ def biocode(input, source, simprints, host, iid, fid):
     Produces one ISCC-SUM per scene with optional per-plane granular simprints
     for similarity search. Output is JSON matching the ISCC search API schema.
     """
-    from iscc_bio.imagewalk import (
-        iter_planes_bioio,
-        iter_planes_blitz_fileset,
-        iter_planes_blitz_image,
-        iter_planes_ngff,
-    )
+    from iscc_bio.api import biocode as biocode_api
 
-    planes = None
-
-    if host and (iid or fid):
-        try:
-            from omero.gateway import BlitzGateway
-
-            logger.info(f"Connecting to OMERO server: {host}")
-            conn = BlitzGateway("root", "omero", host=host, port=4064)
-
-            if not conn.connect():
-                click.echo(f"Failed to connect to OMERO server: {host}", err=True)
-                sys.exit(1)
-
-            try:
-                if fid:
-                    fileset = conn.getObject("Fileset", fid)
-                    if not fileset:
-                        click.echo(f"Fileset {fid} not found", err=True)
-                        sys.exit(1)
-                    planes = iter_planes_blitz_fileset(conn, fileset)
-                else:
-                    image = conn.getObject("Image", iid)
-                    if not image:
-                        click.echo(f"Image {iid} not found", err=True)
-                        sys.exit(1)
-                    planes = iter_planes_blitz_image(conn, image)
-
-                results = generate_biocode(planes, simprints=simprints)
-                click.echo(json.dumps(results, indent=2))
-            finally:
-                conn.close()
-
-        except ImportError:
-            click.echo(
-                "OMERO Python library (omero-py) is not installed.",
-                err=True,
-            )
-            sys.exit(1)
-
-    elif input:
-        input_path = Path(input)
-
-        if source == "auto":
-            if input_path.suffix == ".zarr" or (
-                input_path.is_dir() and (input_path / ".zattrs").exists()
-            ):
-                source = "zarr"
-            else:
-                source = "bioio"
-
-        try:
-            if source == "zarr":
-                planes = iter_planes_ngff(str(input_path))
-            else:
-                planes = iter_planes_bioio(str(input_path))
-
-            results = generate_biocode(planes, simprints=simprints)
-            click.echo(json.dumps(results, indent=2))
-
-        except Exception as e:
-            click.echo(f"Error processing {input_path}: {e}", err=True)
-            sys.exit(1)
-
-    else:
-        click.echo(
-            "Provide a file path or --host with --iid/--fid for OMERO access.",
-            err=True,
+    try:
+        results = biocode_api(
+            source=str(input) if input else None,
+            simprints=simprints,
+            source_type=source if source != "omero" else "auto",
+            host=host,
+            username="root",
+            password="omero",
+            iid=iid,
+            fid=fid,
         )
+        click.echo(json.dumps(results, indent=2))
+    except (FileNotFoundError, ValueError, ConnectionError, ImportError) as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
 
