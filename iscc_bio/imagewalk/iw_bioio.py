@@ -7,7 +7,7 @@ using the BioIO library, conforming to the IMAGEWALK specification.
 
 from typing import Generator
 from pathlib import Path
-from iscc_bio.imagewalk.models import Plane
+from iscc_bio.imagewalk.common import Plane
 from loguru import logger
 import bioio
 

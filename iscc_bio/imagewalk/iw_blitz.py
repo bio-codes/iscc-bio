@@ -6,7 +6,7 @@ stored in OMERO servers, conforming to the IMAGEWALK specification.
 """
 
 from typing import Generator
-from iscc_bio.imagewalk.models import Plane
+from iscc_bio.imagewalk.common import Plane
 from loguru import logger
 import numpy as np
 

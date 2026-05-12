@@ -2,11 +2,38 @@
 name = "iscc-bio"
 version = "0.1.0"
 description = "BioCodes - ISCC Processing for BioImaging Data"
+authors = [{ name = "Titusz", email = "tp@iscc.io" }]
 readme = "README.md"
-requires-python = ">=3.12"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+keywords = [
+    "iscc",
+    "bioimage",
+    "bioimaging",
+    "identifier",
+    "hash",
+    "imagewalk",
+    "ome",
+    "microscopy",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
-    "iscc-core>=1.2.2",
-    "iscc-sum>=0.1.0",
+    "iscc-lib",
     "pillow>=10.0.0",
     "numpy>=1.24.0",
     "click>=8.0.0",
@@ -15,15 +42,14 @@ dependencies = [
     "loguru>=0.7.3",
 ]
 
-[project.optional-dependencies]
-# OMERO support
-omero = [
-    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl ; sys_platform == 'darwin'",
-    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
-    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux'",
-    "omero-py>=5.21.1",
-]
+[project.urls]
+Homepage = "https://bio.iscc.codes"
+Repository = "https://github.com/bio-codes/iscc-bio"
+Documentation = "https://bio.iscc.codes"
+Issues = "https://github.com/bio-codes/iscc-bio/issues"
 
+
+[project.optional-dependencies]
 # Individual BioIO reader plugins
 bioformats = ["bioio-bioformats>=1.3.0"]
 czi = ["bioio-czi>=2.4.0"]
@@ -50,12 +76,8 @@ readers = [
     "bioio-tiff-glob>=1.2.0",
 ]
 
-# All optional dependencies
+# All BioIO readers (convenience alias)
 all = [
-    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl ; sys_platform == 'darwin'",
-    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
-    "zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux'",
-    "omero-py>=5.21.1",
     "bioio-bioformats>=1.3.0",
     "bioio-czi>=2.4.0",
     "bioio-ome-tiff>=1.4.0",
@@ -79,6 +101,7 @@ dev = [
     "mdformat-footnote>=0.1.1",
     "mdformat-tables>=1.0.0",
     "mdformat-gfm-alerts>=2.0.0",
+    "pytest>=8.4.2",
 ]
 
 [project.scripts]
@@ -88,8 +111,8 @@ iscc-bio = "iscc_bio.cli:cli"
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["iscc_bio"]
+[tool.setuptools.packages.find]
+include = ["iscc_bio*"]
 
 [tool.uv]
 package = true
@@ -106,6 +129,10 @@ typing-modules = ["typing"]
 [tool.ruff.lint.per-file-ignores]
 # Files using type comments need to keep their typing imports
 "**/imagewalk/*.py" = ["F401"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
 
 [tool.poe.tasks]
 # Documentation tasks

@@ -7,7 +7,7 @@ in OME-NGFF/Zarr format using the ome-zarr-py library, conforming to the IMAGEWA
 
 from typing import Generator, Union
 from pathlib import Path
-from iscc_bio.imagewalk.models import Plane
+from iscc_bio.imagewalk.common import Plane
 from loguru import logger
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader, Multiscales
@@ -37,16 +37,27 @@ def iter_planes_ngff(zarr_path):
     zarr_name = Path(zarr_path).name if isinstance(zarr_path, (str, Path)) else "zarr"
     logger.debug(f"{zarr_name} - using ome-ngff implementation")
 
-    # Check if this is a bioformats2raw layout (with numbered subdirectories)
+    # Detect bioformats2raw layout: numbered subdirs that are zarr groups.
+    # Try zarr.open_group first (works with remote stores), fall back to filesystem
+    # detection for stores without a root .zgroup (common in bioformats2raw exports).
     import zarr
 
-    root_group = zarr.open_group(str(zarr_path), mode="r")
-
-    # Find series/scene directories (numbered directories like 0, 1, 2, etc.)
-    series_dirs = []
-    for key in root_group.keys():
-        if key.isdigit():
-            series_dirs.append(key)
+    try:
+        root_group = zarr.open_group(str(zarr_path), mode="r")
+        series_dirs = sorted(
+            [key for key in root_group.keys() if key.isdigit()],
+            key=int,
+        )
+    except Exception:
+        zarr_path_obj = Path(zarr_path)
+        series_dirs = sorted(
+            [
+                d.name
+                for d in zarr_path_obj.iterdir()
+                if d.is_dir() and d.name.isdigit() and (d / ".zgroup").exists()
+            ],
+            key=int,
+        )
 
     if series_dirs:
         # Process bioformats2raw layout
@@ -54,8 +65,7 @@ def iter_planes_ngff(zarr_path):
             f"{zarr_name} - detected bioformats2raw layout with {len(series_dirs)} series"
         )
 
-        # Process each series in numerical order
-        for scene_idx, series_key in enumerate(sorted(series_dirs, key=int)):
+        for scene_idx, series_key in enumerate(series_dirs):
             series_path = Path(zarr_path) / series_key
             series_location = parse_url(str(series_path))
 

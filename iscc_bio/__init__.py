@@ -27,20 +27,27 @@ if not os.environ.get("JAVA_HOME"):
 
 
 def _silence_bioformats_logging():
-    """Silence Java logging from bioformats loci package."""
+    """Silence Java logging from bioformats loci package.
+
+    Called lazily on first bioformats usage to avoid JVM initialization
+    during module import.
+    """
     try:
         import scyjava
         import jpype
 
-        scyjava.config.endpoints.append("ome:formats-gpl:6.7.0")
-        scyjava.start_jvm()
-        loci = jpype.JPackage("loci")
-        loci.common.DebugTools.setRootLevel("OFF")
+        # Only start if not already started
+        if not jpype.isJVMStarted():
+            scyjava.config.endpoints.append("ome:formats-gpl:6.7.0")
+            scyjava.start_jvm()
+            loci = jpype.JPackage("loci")
+            loci.common.DebugTools.setRootLevel("OFF")
     except Exception:
         # Silently fail if bioformats is not available or already initialized
         pass
 
 
-_silence_bioformats_logging()
+# Don't initialize JVM at import time - let bioformats do it lazily
+# _silence_bioformats_logging()
 
 __version__ = "0.1.0"
