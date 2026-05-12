@@ -10,7 +10,7 @@ for bioimage data across multiple formats using deterministic **IMAGEWALK** plan
 
 ## Project Status
 
-**Version 0.1.0** - Unreleased.
+**Version 0.1.0**
 
 !!! warning
 
@@ -434,6 +434,11 @@ uv run iscc-bio --help
 ```
 
 ### Development Commands
+
+```bash
+# Run tests
+uv run pytest
+```
 
 This project uses [poethepoet](https://github.com/nat-n/poethepoet) for task automation:
 

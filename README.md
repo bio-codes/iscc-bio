@@ -225,9 +225,8 @@ iscc-bio thumb INPUT
 ### IMAGEWALK Plane Iteration
 
 ```python
-from iscc_bio.imagewalk.iw_bioio import iter_planes_bioio
-from iscc_bio.imagewalk.iw_ngff import iter_planes_ngff
-from iscc_bio.imagewalk.iw_blitz import iter_planes_blitz
+from iscc_bio.imagewalk import iter_planes_bioio, iter_planes_ngff
+from iscc_bio.imagewalk import iter_planes_blitz_image
 
 # Iterate over planes using BioIO
 for plane in iter_planes_bioio("image.czi"):
@@ -246,7 +245,7 @@ conn = BlitzGateway("user", "pass", host="omero.server.com")
 conn.connect()
 image = conn.getObject("Image", 123)
 
-for plane in iter_planes_blitz(image):
+for plane in iter_planes_blitz_image(conn, image):
     # Process plane.xy_array
     pass
 conn.close()
@@ -308,6 +307,11 @@ uv run iscc-bio --help
 
 ### Development Commands
 
+```bash
+# Run tests
+uv run pytest
+```
+
 This project uses [poethepoet](https://github.com/nat-n/poethepoet) for task automation:
 
 ```bash
@@ -328,12 +332,14 @@ uv run poe all
 
 ### Core Modules
 
+- **`iscc_bio.api`**: High-level Python API — `biocode()` entry point for all sources
+
 - **`iscc_bio.imagewalk`**: IMAGEWALK plane traversal implementations
 
     - `iw_bioio.py`: BioIO implementation
     - `iw_ngff.py`: OME-Zarr/NGFF implementation
     - `iw_blitz.py`: OMERO Blitz implementation
-    - `models.py`: Plane data model
+    - `common.py`: Plane data model and canonical byte conversion
 
 - **`iscc_bio.biocode`**: Biocode (ISCC-SUM) generation from IMAGEWALK plane iterators
 
@@ -341,7 +347,7 @@ uv run poe all
 
 - **`iscc_bio.views`**: Intelligent view extraction strategies
 
-- **`iscc_bio.cli`**: Command-line interface
+- **`iscc_bio.cli`**: Command-line interface (thin wrapper around the Python API)
 
 ### Design Principles
 
