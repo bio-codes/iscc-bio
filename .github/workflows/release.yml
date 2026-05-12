@@ -8,17 +8,16 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: astral-sh/setup-uv@v6
-
-      - name: Install Python
-        run: uv python install 3.12
+      - uses: astral-sh/setup-uv@v8
+        with:
+          python-version: "3.12"
 
       - name: Build package
         run: uv build
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@v1
         with:
           password: ${{ secrets.PYPI_TOKEN }}
