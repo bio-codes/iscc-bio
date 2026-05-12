@@ -264,7 +264,7 @@ def views(input, strategies, max_views, output_dir, host, iid):
         except ImportError:
             click.echo(
                 "✗ OMERO Python library (omero-py) is not installed. "
-                "Install it with: pip install omero-py",
+                "Install with: pip install -r requirements-omero.txt",
                 err=True,
             )
             sys.exit(1)

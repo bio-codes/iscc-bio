@@ -10,10 +10,10 @@ for bioimage data across multiple formats using deterministic **IMAGEWALK** plan
 
 ## Project Status
 
-**Version 0.1.0** - Unreleased.
+**Version 0.1.0**
 
 > [!WARNING]
-> This package is a proof of concept under active development, and breaking changes may be released at any time.
+> This package is a proof of concept, and breaking changes may be released at any time.
 
 ## Overview
 
@@ -31,7 +31,7 @@ Documentation: https://bio.iscc.codes
 - **Multi-Source Support**: Process local files (via BioIO), OME-Zarr archives, and OMERO remote servers
 - **Memory Efficient**: Lazy loading with Dask for processing large multi-dimensional images
 - **Multi-Scene Processing**: Handle complex multi-scene/multi-series bioimage files
-- **Command-Line Tools**: CLI commands for code generation, pixel hashing, and view extraction
+- **Command-Line Tools**: CLI commands for code generation
 
 ## Installation
 
@@ -54,17 +54,21 @@ uv tool install "iscc-bio[readers]"
 # Install with specific format support
 uv tool install "iscc-bio[czi,nd2,lif]"
 
-# Install with OMERO support
-uv tool install "iscc-bio[omero]"
-
-# Install everything
+# Install everything (all readers)
 uv tool install "iscc-bio[all]"
+```
+
+### OMERO Support
+
+OMERO requires platform-specific prebuilt `zeroc-ice` wheels not available on PyPI. Install separately:
+
+```bash
+pip install -r requirements-omero.txt
 ```
 
 ### Available Optional Dependencies
 
-- **readers**: All BioIO reader plugins (BioFormats, CZI, OME-TIFF, OME-Zarr, ND2, LIF, etc.)
-- **omero**: OMERO Blitz gateway for remote server access
+- **readers** / **all**: All BioIO reader plugins (BioFormats, CZI, OME-TIFF, OME-Zarr, ND2, LIF, etc.)
 - **bioformats**: BioFormats reader for broad format support
 - **czi**, **nd2**, **lif**, **ome-tiff**, **ome-zarr-plugin**, **dv**, **tifffile**: Individual format readers
 

@@ -55,17 +55,21 @@ uv tool install "iscc-bio[readers]"
 # Install with specific format support
 uv tool install "iscc-bio[czi,nd2,lif]"
 
-# Install with OMERO support
-uv tool install "iscc-bio[omero]"
-
-# Install everything
+# Install everything (all readers)
 uv tool install "iscc-bio[all]"
+```
+
+### OMERO Support
+
+OMERO requires platform-specific prebuilt `zeroc-ice` wheels not available on PyPI. Install separately:
+
+```bash
+pip install -r requirements-omero.txt
 ```
 
 ### Available Optional Dependencies
 
-- **readers**: All BioIO reader plugins (BioFormats, CZI, OME-TIFF, OME-Zarr, ND2, LIF, etc.)
-- **omero**: OMERO Blitz gateway for remote server access
+- **readers** / **all**: All BioIO reader plugins (BioFormats, CZI, OME-TIFF, OME-Zarr, ND2, LIF, etc.)
 - **bioformats**: BioFormats reader for broad format support
 - **czi**, **nd2**, **lif**, **ome-tiff**, **ome-zarr-plugin**, **dv**, **tifffile**: Individual format readers
 

@@ -1,0 +1,19 @@
+# OMERO support for iscc-bio
+#
+# Install with: pip install -r requirements-omero.txt
+#
+# Uses prebuilt zeroc-ice wheels from Glencoe Software because omero-py
+# requires zeroc-ice<3.7 which has no binary wheels on PyPI.
+# Prebuilt wheels are available for Python 3.11 and 3.12 only.
+
+# Python 3.11
+zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp311-cp311-macosx_11_0_universal2.whl ; sys_platform == 'darwin' and python_version == '3.11'
+zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp311-cp311-win_amd64.whl ; sys_platform == 'win32' and python_version == '3.11'
+zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp311-cp311-manylinux_2_28_x86_64.whl ; sys_platform == 'linux' and python_version == '3.11'
+
+# Python 3.12
+zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-macos-universal2/releases/download/20240131/zeroc_ice-3.6.5-cp312-cp312-macosx_11_0_universal2.whl ; sys_platform == 'darwin' and python_version == '3.12'
+zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-win-x86_64/releases/download/20240325/zeroc_ice-3.6.5-cp312-cp312-win_amd64.whl ; sys_platform == 'win32' and python_version == '3.12'
+zeroc-ice @ https://github.com/glencoesoftware/zeroc-ice-py-linux-x86_64/releases/download/20240202/zeroc_ice-3.6.5-cp312-cp312-manylinux_2_28_x86_64.whl ; sys_platform == 'linux' and python_version == '3.12'
+
+omero-py>=5.21.1

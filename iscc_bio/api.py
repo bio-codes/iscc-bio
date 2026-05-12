@@ -168,7 +168,7 @@ def _biocode_omero(*, host, port, username, password, iid, fid, conn, simprints,
             from omero.gateway import BlitzGateway
         except ImportError:
             raise ImportError(
-                "OMERO support requires omero-py. Install with: pip install omero-py"
+                "OMERO support requires omero-py. Install with: pip install -r requirements-omero.txt"
             ) from None
 
         conn = BlitzGateway(username, password, host=host, port=port)
