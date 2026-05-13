@@ -14,7 +14,7 @@ for bioimage data across multiple formats using deterministic **IMAGEWALK** plan
 
 !!! warning
 
-    This package is a proof of concept under active development, and breaking changes may be released at any time.
+    This package is a proof of concept, and breaking changes may be released at any time.
 
 ## Overview
 
@@ -32,7 +32,7 @@ Documentation: https://bio.iscc.codes
 - **Multi-Source Support**: Process local files (via BioIO), OME-Zarr archives, and OMERO remote servers
 - **Memory Efficient**: Lazy loading with Dask for processing large multi-dimensional images
 - **Multi-Scene Processing**: Handle complex multi-scene/multi-series bioimage files
-- **Command-Line Tools**: CLI commands for code generation, pixel hashing, and view extraction
+- **Command-Line Tools**: CLI commands for code generation
 
 ## Installation
 
@@ -74,42 +74,6 @@ pip install -r requirements-omero.txt
 - **czi**, **nd2**, **lif**, **ome-tiff**, **ome-zarr-plugin**, **dv**, **tifffile**: Individual format readers
 
 ## Quick Start
-
-=== "Python"
-
-    ```python
-    from iscc_bio.api import biocode
-
-    # Local bioimage file (auto-detects format)
-    results = biocode("myimage.ome.tiff")
-    print(results[0]["iscc_code"])
-
-    # OME-Zarr/NGFF archive
-    results = biocode("data.zarr")
-
-    # OMERO server
-    results = biocode(host="omero.server.com", username="user",
-                      password="pass", iid=123)
-
-    # With per-plane simprints for similarity search
-    results = biocode("myimage.czi", simprints=True)
-    ```
-
-=== "CLI"
-
-    ```bash
-    # Local bioimage file (auto-detects format)
-    iscc-bio biocode myimage.ome.tiff
-
-    # OME-Zarr/NGFF archive
-    iscc-bio biocode data.zarr
-
-    # OMERO server
-    iscc-bio biocode --host omero.server.com --iid 123
-
-    # With per-plane simprints for similarity search
-    iscc-bio biocode myimage.czi --simprints
-    ```
 
 ### CLI Commands
 
@@ -259,118 +223,46 @@ iscc-bio thumb INPUT
 
 ## Python API
 
-### Generate Biocode (ISCC-SUM)
-
-The `biocode()` function is the primary entry point for programmatic use. It handles source detection,
-format-specific readers, and connection management automatically.
+### IMAGEWALK Plane Iteration
 
 ```python
-from iscc_bio.api import biocode
-```
+from iscc_bio.imagewalk import iter_planes_bioio, iter_planes_ngff
+from iscc_bio.imagewalk import iter_planes_blitz_image
 
-#### Local Files
+# Iterate over planes using BioIO
+for plane in iter_planes_bioio("image.czi"):
+    print(f"Scene {plane.scene_idx}, Z={plane.z_depth}, "
+          f"C={plane.c_channel}, T={plane.t_time}")
+    print(f"Shape: {plane.xy_array.shape}, dtype: {plane.xy_array.dtype}")
 
-Auto-detects the file format and uses the appropriate BioIO reader plugin:
+# Iterate over OME-Zarr planes
+for plane in iter_planes_ngff("data.zarr"):
+    # Process plane.xy_array (2D numpy array)
+    pass
 
-```python
-# Any format supported by BioIO (OME-TIFF, CZI, ND2, LIF, etc.)
-results = biocode("image.ome.tiff")
-print(results[0]["iscc_code"])   # ISCC-SUM for first scene
-print(results[0]["units"])       # [data_code, instance_code]
-
-# Multi-scene files produce one entry per scene
-results = biocode("multi_scene.lif")
-for i, entry in enumerate(results):
-    print(f"Scene {i}: {entry['iscc_code']}")
-```
-
-#### OME-NGFF / Zarr Archives
-
-Zarr sources are auto-detected by `.zarr` suffix or `.zattrs` presence:
-
-```python
-results = biocode("dataset.zarr")
-
-# Force Zarr reader for non-standard paths
-results = biocode("data/my_dataset", source_type="zarr")
-```
-
-#### OMERO Server
-
-Connect to an OMERO server to process remote images:
-
-```python
-# Single image by ID
-results = biocode(
-    host="omero.server.com",
-    username="user",
-    password="pass",
-    iid=123,
-)
-
-# Entire fileset (all scenes/series)
-results = biocode(
-    host="omero.server.com",
-    username="user",
-    password="pass",
-    fid=456,
-)
-
-# With a pre-connected BlitzGateway (connection lifecycle managed by caller)
+# Iterate over OMERO planes
 from omero.gateway import BlitzGateway
 conn = BlitzGateway("user", "pass", host="omero.server.com")
 conn.connect()
+image = conn.getObject("Image", 123)
 
-results = biocode(conn=conn, iid=123)
+for plane in iter_planes_blitz_image(conn, image):
+    # Process plane.xy_array
+    pass
 conn.close()
 ```
 
-#### Per-Plane Simprints
-
-Enable granular per-plane similarity fingerprints for fine-grained search:
+### Generate Biocode (ISCC-SUM)
 
 ```python
-results = biocode("image.czi", simprints=True)
+from iscc_bio.biocode import generate_biocode
+from iscc_bio.imagewalk import iter_planes_bioio
 
-# Each scene entry includes simprints
-for sp in results[0]["simprints"]["DATA_NONE_V0"]:
-    print(f"Plane {sp['offset']}: {sp['simprint']} ({sp['size']} bytes)")
+# Generate biocode for all scenes
+planes = iter_planes_bioio("image.lif")
+results = generate_biocode(planes)
+print(results[0]["iscc_code"])  # ISCC-SUM for first scene
 ```
-
-#### Return Value
-
-Returns a list of dicts (one per scene) matching the [IsccEntry](https://search.iscc.id) schema:
-
-```python
-[
-    {
-        "iscc_code": "ISCC:...",          # ISCC-SUM for the scene
-        "units": ["ISCC:...", "ISCC:..."], # [data_code, instance_code]
-        "simprints": {                     # Only present if simprints=True
-            "DATA_NONE_V0": [
-                {"simprint": "base64...", "offset": 0, "size": 4096},
-                {"simprint": "base64...", "offset": 1, "size": 4096},
-            ]
-        }
-    }
-]
-```
-
-#### Parameters
-
-| Parameter     | Type           | Default  | Description                                       |
-| ------------- | -------------- | -------- | ------------------------------------------------- |
-| `source`      | `str \| Path`  | `None`   | Path to bioimage file or zarr directory           |
-| `simprints`   | `bool`         | `False`  | Generate per-plane DATA_NONE_V0 simprints         |
-| `bits`        | `int`          | `256`    | Bit length for ISCC codes                         |
-| `source_type` | `str`          | `"auto"` | `"auto"`, `"bioio"`, or `"zarr"`                  |
-| `host`        | `str`          | `None`   | OMERO server hostname                             |
-| `port`        | `int`          | `4064`   | OMERO server port                                 |
-| `username`    | `str`          | `None`   | OMERO username (required with `host`)             |
-| `password`    | `str`          | `None`   | OMERO password (required with `host`)             |
-| `iid`         | `int`          | `None`   | OMERO image ID                                    |
-| `fid`         | `int`          | `None`   | OMERO fileset ID                                  |
-| `conn`        | `BlitzGateway` | `None`   | Pre-connected OMERO gateway (alternative to host) |
 
 ### Generate Imagecode (Experimental)
 
@@ -383,25 +275,6 @@ fingerprints = generate_imagecode("image.nd2", max_views=5)
 # Format output
 output = format_output(fingerprints, "image.nd2")
 print(output)
-```
-
-### Low-Level API: IMAGEWALK Plane Iteration
-
-For advanced use cases requiring direct control over plane traversal:
-
-```python
-from iscc_bio.imagewalk import iter_planes_bioio, iter_planes_ngff
-from iscc_bio.biocode import generate_biocode
-
-# Iterate over planes from any source
-for plane in iter_planes_bioio("image.czi"):
-    print(f"Scene {plane.scene_idx}, Z={plane.z_depth}, "
-          f"C={plane.c_channel}, T={plane.t_time}")
-    print(f"Shape: {plane.xy_array.shape}, dtype: {plane.xy_array.dtype}")
-
-# Feed planes to generate_biocode with custom options
-planes = iter_planes_bioio("image.lif")
-results = generate_biocode(planes, simprints=True, bits=256)
 ```
 
 ## Supported Formats
@@ -469,7 +342,7 @@ uv run poe all
     - `iw_blitz.py`: OMERO Blitz implementation
     - `common.py`: Plane data model and canonical byte conversion
 
-- **`iscc_bio.biocode`**: Low-level biocode (ISCC-SUM) generation from plane iterators
+- **`iscc_bio.biocode`**: Biocode (ISCC-SUM) generation from IMAGEWALK plane iterators
 
 - **`iscc_bio.imagecode`**: Imagecode generation (ISCC-SUM + ISCC-IMAGE + ISCC-MIXED)
 
