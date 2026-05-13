@@ -387,6 +387,7 @@ If you use iscc-bio in your research, please cite:
 ## Related Projects
 
 - [iscc-sum](https://github.com/bio-codes/iscc-sum) - Fast ISCC Data-Code and Instance-Code hashing
-- [iscc-core](https://github.com/iscc/iscc-core) - ISCC Core Algorithms
+- [iscc-core](https://github.com/iscc/iscc-core) - ISCC Core Algorithms - Reference implementation
+- [iscc-lib](https://github.com/iscc/iscc-lib) - ISCC Core Algorithms - Polyglot Rust implementation
 - [BioIO](https://github.com/bioio-devs/bioio) - Bioimage reading library
 - [OME-Zarr](https://github.com/ome/ome-zarr-py) - Next-generation file format implementation
