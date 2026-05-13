@@ -15,6 +15,8 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from PIL import Image
 
+from iscc_bio.imagewalk.common import plane_to_canonical_bytes
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,32 +41,6 @@ class SceneFingerprint:
     iscc_sum: str
     views: List[Dict[str, Any]]  # Selected views with ISCC-IMAGE codes
     iscc_mixed: Optional[str] = None
-
-
-def _plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
-    """Convert a 2D plane to canonical byte representation.
-
-    Uses big-endian byte order for compatibility with OMERO.
-
-    Args:
-        plane: 2D NumPy array representing a single plane
-
-    Returns:
-        Bytes in big-endian format
-    """
-    if plane.ndim != 2:
-        raise ValueError(f"Expected 2D plane, got {plane.ndim}D")
-
-    flat = plane.flatten(order="C")
-
-    if flat.dtype.byteorder == ">" or (
-        flat.dtype.byteorder == "=" and np.little_endian
-    ):
-        canonical_bytes = flat.astype(f">{flat.dtype.char}", copy=False).tobytes()
-    else:
-        canonical_bytes = flat.astype(f">{flat.dtype.char}").tobytes()
-
-    return canonical_bytes
 
 
 def _calculate_entropy(plane: np.ndarray) -> float:
@@ -520,7 +496,7 @@ def generate_imagecode(
                     plane = img.get_image_data("YX", **kwargs)
 
                     # Update pixel hash
-                    canonical_bytes = _plane_to_canonical_bytes(plane)
+                    canonical_bytes = plane_to_canonical_bytes(plane)
                     data_hasher.update(canonical_bytes)
                     inst_hasher.update(canonical_bytes)
 

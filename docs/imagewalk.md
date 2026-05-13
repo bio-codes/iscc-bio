@@ -256,8 +256,8 @@ Implementations **MUST** follow this hash processing protocol:
 !!! note
 
     This specification does not mandate a specific hash algorithm. The canonical byte sequence produced by IMAGEWALK
-    can be used with any hash function or content identification scheme. Reference implementations use ISCC-SUM
-    (iscc_sum.IsccSumProcessor) for bioimage fingerprinting.
+    can be used with any hash function or content identification scheme. Reference implementations use ISCC-SUM (via
+    iscc_lib.DataHasher and iscc_lib.InstanceHasher) for bioimage fingerprinting.
 
 ## 5. Implementation Examples
 
