@@ -28,8 +28,9 @@ Documentation: https://bio.iscc.codes
 This repository includes a draft JOSS paper at `paper/paper.md` and a bounded conversion-matching experiment at
 `experiments/joss_conversion_matching.py`. The experiment downloads a small public Open Microscopy sample corpus
 with pinned byte sizes and SHA-256 digests, re-encodes readable scenes from `iscc-bio`'s own IMAGEWALK plane
-extraction into OME-TIFF and OME-Zarr, and verifies whether scene-level BioCodes remain identical after those
-pixel-preserving round trips.
+extraction into OME-TIFF, DEFLATE-compressed OME-TIFF, and OME-Zarr, and validates both exact round-trip matching
+and one-pixel drift cases where the Instance-Code changes while the Data-Code can remain retrievable by Hamming
+distance.
 
 Run the network-free smoke tests:
 
@@ -45,9 +46,9 @@ command above:
 uv run --python 3.11 python experiments/joss_conversion_matching.py --max-samples 4
 ```
 
-Generated downloads and results are written below `experiments/cache/` and `experiments/results/`, which are
-ignored by git. Full-corpus runs include optional OIR and LIF samples and therefore require the corresponding
-BioIO reader extras.
+Generated downloads and converted intermediate files are written below `experiments/cache/` and
+`experiments/results/`, which are ignored by git. The paper-ready summary table and figure are written to
+`paper/experiment-results.md` and `paper/figures/conversion-matching.png`.
 
 ### Key Features
 

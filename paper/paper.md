@@ -26,7 +26,9 @@ for multi-dimensional bioimage data. Bioimages are commonly stored as OME-TIFF, 
 pixel stores, and vendor-specific microscopy formats. These containers differ in metadata layout, chunking,
 compression, tiling, and scene representation, even when they describe the same pixel content. `iscc-bio`
 addresses this by applying a deterministic IMAGEWALK traversal over image planes and feeding a canonical byte
-representation into ISCC Data-Code and Instance-Code hashers.
+representation into ISCC-SUM Data-Code and Instance-Code hashers. The Instance-Code provides strict equality
+checking over the canonical stream, while the Data-Code can be compared by Hamming distance to retrieve
+near-matches after small decoded-data inconsistencies.
 
 The package exposes both a Python API and command-line interface for local BioIO-readable files, OME-NGFF/Zarr
 stores, and OMERO sources. It is intended as a small interoperability layer between the microscopy software
@@ -49,11 +51,13 @@ memory. For each scene, IMAGEWALK visits planes in deterministic `Z -> C -> T` o
 to a canonical row-major byte representation before hash updates. The result is an ISCC composite code with data
 and instance units over normalized bioimage content rather than the original container byte stream.
 
-This scope is deliberately narrower than semantic image understanding. The experiment included with the
-repository tests whether conversions preserve the same pixel-canonical BioCode. It does not claim that raw files
-have the same cryptographic checksum, nor that perceptually similar but pixel-different images should match.
-Lossy compression, intensity rescaling, channel projection, or non-canonical rendering choices can correctly
-produce different identifiers.
+This scope is deliberately narrower than semantic image understanding. Exact `iscc-bio` BioCode equality means
+that compared inputs produced the same canonical pixel stream under IMAGEWALK. When a conversion introduces a
+small decoded-pixel perturbation, exact equality should fail: the Instance-Code is a cryptographic digest and
+changes. The Data-Code unit, however, is similarity preserving over the canonical stream and can remain within a
+low Hamming-distance search threshold. Lossy compression, intensity rescaling, channel projection, or
+non-canonical rendering choices can still produce large Data-Code distances, so the package reports component
+codes and distances rather than collapsing every comparison to a single pass/fail value.
 
 # State of the field
 
@@ -77,10 +81,12 @@ BioCode.
 
 Stable content-derived identifiers are useful for deduplicating repository holdings, checking whether conversion
 pipelines preserve pixel content, linking files and derived OME-NGFF stores, and indexing per-plane simprints for
-more granular search. The included JOSS experiment is deliberately modest: it verifies `iscc-bio` round-trip
-behavior across OME-TIFF and OME-Zarr encodings for small public samples and synthetic fixtures. Larger accuracy,
-lossy-compression, and independent-converter benchmarks remain future work and are better suited to a dedicated
-benchmarking repository.
+more granular search. The included JOSS experiment is deliberately modest but covers both exact and near-match
+behavior: it verifies OME-TIFF and OME-Zarr round trips for small public samples, and it injects controlled
+one-pixel decoded-data drift to validate that Instance-Code equality fails while Data-Code search can still
+recover near matches. Larger independent-converter and proprietary-codec benchmarks, including the known
+CZI/JPEG-XR decoder-variance class, remain appropriate follow-up work once small unrestricted public fixtures are
+available.
 
 # Functionality
 
@@ -106,14 +112,41 @@ public downloads. For each readable sample, the script:
 1. downloads the sample into an ignored local cache, refusing files above a fixed size limit;
 2. computes the original scene-level BioCode with `iscc-bio`;
 3. materializes each scene from `iscc-bio`'s own IMAGEWALK plane extraction as a dense `TCZYX` array;
-4. writes normalized OME-TIFF and single-scale OME-Zarr round-trip variants;
-5. recomputes BioCodes for the converted variants; and
-6. records whether each scene's composite code and component units match.
+4. writes normalized OME-TIFF, DEFLATE-compressed OME-TIFF, and single-scale OME-Zarr round-trip variants;
+5. writes matched OME-TIFF and OME-Zarr variants after a deterministic one-pixel perturbation that simulates
+   small decoded-data drift from codec or decoder differences;
+6. recomputes BioCodes for the converted variants; and
+7. records exact composite equality, Data-Code equality, Instance-Code equality, Data-Code Hamming distance, and
+   Instance-Code Hamming distance for each scene.
 
-The experiment is intentionally small enough to run during review while still covering multiple public
-microscopy sources. It reports JSON and CSV artifacts under `experiments/results/`. Network access is not
-required for tests: the test suite creates synthetic multi-Z, multi-channel data and verifies that OME-TIFF and
-OME-Zarr round trips preserve `iscc-bio` BioCodes.
+The generated paper table is tracked in `paper/experiment-results.md`, and the script also writes the summary
+figure in Figure 1. The current run used a 64-bit near-match threshold for 256-bit Data-Code units. Exact OME-TIFF
+and OME-Zarr round trips matched for all tested samples. Drifted conversions changed Instance-Code units in every
+case; the Data-Code stayed within the near-match threshold for the larger public samples and exceeded it for the
+two smallest scenes, illustrating that Data-Code retrieval is robust to small perturbations when enough canonical
+content remains shared, but is not a universal invariant.
+
+![Conversion matching outcomes. Exact rows preserve both Data-Code and Instance-Code. Near rows have changed
+Instance-Codes but Data-Code Hamming distance at or below the 64/256-bit threshold.](figures/conversion-matching.png)
+
+**Figure 1:** Outcome counts for the reproducible conversion experiment.
+
+| variant | tool | target format | drifted pixels | rows | exact | near | mismatch | skip/error | Data-Code Hamming median (min-max) | Instance-Code Hamming median |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ome_tiff_tifffile` | `tifffile` | OME-TIFF | 0 | 4 | 4 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
+| `ome_tiff_tifffile_deflate` | `tifffile(deflate)` | OME-TIFF | 0 | 4 | 4 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
+| `ome_tiff_tifffile_one_pixel_drift` | `tifffile+synthetic-drift` | OME-TIFF | 1 | 4 | 0 | 2 | 2 | 0/0 | 55.5 (0-120) | 134 |
+| `ome_zarr_ome_zarr_py` | `ome-zarr-py` | OME-Zarr | 0 | 4 | 4 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
+| `ome_zarr_ome_zarr_py_one_pixel_drift` | `ome-zarr-py+synthetic-drift` | OME-Zarr | 1 | 4 | 0 | 2 | 2 | 0/0 | 55.5 (0-120) | 134 |
+
+The experiment is intentionally small enough to run during review while still covering multiple public microscopy
+sources, target encodings, writer stacks, and the Data-Code/Instance-Code split that motivates ISCC-SUM in
+`iscc-bio`. It reports JSON and CSV artifacts under `experiments/results/`, and also records the availability of
+independent Bio-Formats command-line tools (`bfconvert`, `bioformats2raw`, `raw2ometiff`) in the manifest so that
+future runs can add them without changing the result schema. Network access is not required for tests: the test
+suite creates synthetic multi-Z, multi-channel data and verifies that OME-TIFF and OME-Zarr round trips preserve
+`iscc-bio` BioCodes, while a one-pixel perturbation test verifies Data-Code near matching with Instance-Code
+mismatch.
 
 The experiment also makes failures explicit. If an optional BioIO reader is not installed or cannot decode a
 public source, the result row records that error rather than silently removing the sample. This is important for

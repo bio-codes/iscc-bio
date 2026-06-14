@@ -71,6 +71,64 @@ def test_scene_codes_match_requires_same_number_of_entries():
     assert joss.scene_codes_match([entry], [entry, entry]) == (0, 2)
 
 
+def test_one_pixel_drift_changes_instance_but_keeps_data_near_match():
+    original_plane = np.arange(64 * 64, dtype=np.uint16).reshape(64, 64)
+    drifted_plane = original_plane.copy()
+    drifted_plane[0, 0] += 1
+    original = generate_biocode(
+        iter([Plane(original_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)])
+    )[0]
+    drifted = generate_biocode(
+        iter([Plane(drifted_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)])
+    )[0]
+
+    comparison = joss.compare_entries(original, drifted, data_hamming_threshold=64)
+
+    assert comparison.status == "near_match"
+    assert comparison.data_near_match is True
+    assert comparison.data_code_equal is False
+    assert comparison.instance_code_equal is False
+    assert 0 < comparison.data_hamming <= 64
+    assert comparison.instance_hamming > comparison.data_hamming
+
+
+def test_generated_paper_table_mentions_threshold(tmp_path):
+    original_plane = np.arange(64 * 64, dtype=np.uint16).reshape(64, 64)
+    drifted_plane = original_plane.copy()
+    drifted_plane[0, 0] += 1
+    original = generate_biocode(
+        iter([Plane(original_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)])
+    )[0]
+    drifted = generate_biocode(
+        iter([Plane(drifted_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)])
+    )[0]
+    comparison = joss.compare_entries(original, drifted, data_hamming_threshold=64)
+    row = joss.MatchRow(
+        sample_id="synthetic",
+        scene_idx=0,
+        variant="drift",
+        tool="synthetic",
+        target_format="OME-TIFF",
+        drift_pixels=1,
+        status=comparison.status,
+        data_near_match=comparison.data_near_match,
+        data_code_equal=comparison.data_code_equal,
+        instance_code_equal=comparison.instance_code_equal,
+        data_hamming=comparison.data_hamming,
+        instance_hamming=comparison.instance_hamming,
+        data_hamming_threshold=64,
+    )
+    summary = joss.summarize_rows([row], tmp_path)
+    table = tmp_path / "table.md"
+
+    joss.write_paper_table([row], summary, table)
+
+    text = table.read_text()
+    assert "Data-Code near-match threshold was 64 bits" in text
+    assert "drift" in text
+    assert "near" in text.lower()
+
+
 def test_synthetic_ome_tiff_roundtrip_matches_biocode(tmp_path):
     original = generate_biocode(iter(make_planes()))
     scene = joss.SceneBundle(scene_idx=0, planes=make_planes())
