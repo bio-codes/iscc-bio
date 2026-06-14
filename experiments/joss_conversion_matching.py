@@ -21,7 +21,9 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import importlib.metadata
 import json
+import platform
 import shutil
 import subprocess
 import sys
@@ -117,6 +119,15 @@ PUBLIC_CORPUS: tuple[Sample, ...] = (
         source="Open Microscopy TIFF condensation sample",
         format="TIFF",
         note="Condensation TIFF sample with pinned size and digest.",
+    ),
+    Sample(
+        sample_id="bia_sbiad1_rnafish_tiff",
+        url="https://www.ebi.ac.uk/biostudies/files/S-BIAD1/20181016-ftp/Exp2_rep3/%232_Analyzed_images/SD_mRNA_Exp2_rep3_0min_im5_TMRmaxF.tif",
+        expected_size=131796,
+        sha256="f5ff8a20890a89f3767a788e29007dc7e15e62e80120fe874f8ea3fc187fad1c",
+        source="BioImage Archive S-BIAD1 RNA-FISH sample",
+        format="TIFF",
+        note="Small BioImage Archive analyzed RNA-FISH TIFF fixture.",
     ),
     Sample(
         sample_id="zeiss_czi_rgb_8bit",
@@ -1250,6 +1261,39 @@ def evaluate_sample(
                 )
 
 
+def collect_environment() -> dict[str, object]:
+    """Return software versions that can affect conversion experiment results."""
+
+    packages = [
+        "iscc-bio",
+        "iscc-lib",
+        "bioio",
+        "bioio-bioformats",
+        "bioio-czi",
+        "bioio-lif",
+        "bioio-nd2",
+        "bioio-ome-tiff",
+        "bioio-ome-zarr",
+        "bioio-tifffile",
+        "numpy",
+        "ome-zarr",
+        "tifffile",
+        "zarr",
+    ]
+    python_packages: dict[str, str] = {}
+    for package in packages:
+        try:
+            python_packages[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            python_packages[package] = "not-installed"
+
+    return {
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+        "python_packages": python_packages,
+    }
+
+
 def external_tool_versions() -> dict[str, str]:
     """Return versions for optional independent conversion tools."""
 
@@ -1567,6 +1611,7 @@ def run_experiment(args: argparse.Namespace) -> dict:
             tool_id: asdict(state) for tool_id, state in tools.items()
         },
         "system_external_tools": external_tool_versions(),
+        "environment": collect_environment(),
         "excluded_converters": list(EXCLUDED_CONVERTERS),
     }
     (results_dir / "manifest.json").write_text(

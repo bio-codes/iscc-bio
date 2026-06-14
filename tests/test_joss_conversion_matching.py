@@ -53,19 +53,36 @@ def test_scene_to_tczyx_preserves_imagewalk_order():
 
 
 def test_public_corpus_contains_pinned_broad_formats():
-    by_format = {sample.format: sample for sample in joss.PUBLIC_CORPUS}
+    by_id = {sample.sample_id: sample for sample in joss.PUBLIC_CORPUS}
+    formats = {sample.format for sample in joss.PUBLIC_CORPUS}
 
-    assert {"OME-TIFF", "TIFF", "OIR", "LIF", "ND2", "CZI"} <= set(by_format)
-    assert by_format["OME-TIFF"].expected_size == 7_889_665
+    assert {"OME-TIFF", "TIFF", "OIR", "LIF", "ND2", "CZI"} <= formats
+    assert by_id["ome_tiff_multi_channel_4d"].expected_size == 7_889_665
     assert (
-        by_format["OME-TIFF"].sha256
+        by_id["ome_tiff_multi_channel_4d"].sha256
         == "23ec5b84154850360800b299e6c088b8f60c5e81b6c990ac1e9b15496fa9549d"
     )
-    assert by_format["ND2"].expected_size == 270_336
+    assert by_id["nikon_nd2_bf007"].expected_size == 270_336
+    bia_sample = by_id["bia_sbiad1_rnafish_tiff"]
+    assert bia_sample.expected_size == 131_796
+    assert "S-BIAD1" in bia_sample.url
     assert (
-        by_format["CZI"].sha256
+        bia_sample.sha256
+        == "f5ff8a20890a89f3767a788e29007dc7e15e62e80120fe874f8ea3fc187fad1c"
+    )
+    assert (
+        by_id["zeiss_czi_rgb_8bit"].sha256
         == "44593e6210f2f9066f8608c53c31806f4d173d1d26bb3bb5c32b182fb0c0a43e"
     )
+
+
+def test_environment_manifest_records_relevant_versions():
+    env = joss.collect_environment()
+
+    assert env["python"]
+    assert env["platform"]
+    assert env["python_packages"]["iscc-bio"] != "not-installed"
+    assert "bioio" in env["python_packages"]
 
 
 def test_pinned_external_tool_manifest_and_gating(tmp_path):

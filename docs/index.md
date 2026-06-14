@@ -5,8 +5,9 @@
 
 **ISCC Processing for Multi-Dimensional Bioimage Data**
 
-Generate [ISO 24138:2024](https://www.iso.org/standard/77899.html) International Standard Content Codes (ISCC)
-for bioimage data across multiple formats using deterministic **IMAGEWALK** plane traversal.
+Generate identifiers based on the [ISO 24138:2024](https://www.iso.org/standard/77899.html) International
+Standard Content Code (ISCC) model for bioimage data across multiple formats using deterministic **IMAGEWALK**
+plane traversal.
 
 ## Project Status
 
@@ -20,7 +21,8 @@ for bioimage data across multiple formats using deterministic **IMAGEWALK** plan
 
 `iscc-bio` bridges bioimage formats with ISCC-CODE processing by implementing the **IMAGEWALK** specification -
 a deterministic algorithm for traversing and canonicalizing pixel data from multi-dimensional bioimaging data.
-This produces consistent, reproducible content identifiers regardless of source format or storage platform.
+It produces reproducible content-derived identifiers when readers and converters expose the same ordered canonical
+pixel planes; reader or converter interpretation differences are reported rather than hidden.
 
 Documentation: https://bio.iscc.codes
 
@@ -28,10 +30,10 @@ Documentation: https://bio.iscc.codes
 
 This repository includes a draft JOSS paper at `paper/paper.md` and a bounded conversion-matching experiment at
 `experiments/joss_conversion_matching.py`. The experiment downloads a small pinned public corpus spanning
-OME-TIFF, TIFF, CZI, ND2, OIR, and LIF, re-encodes readable scenes from `iscc-bio`'s own IMAGEWALK plane
-extraction into OME-TIFF, DEFLATE-compressed OME-TIFF, and OME-Zarr, runs pinned Bio-Formats `bfconvert` as an
-independent converter to OME-TIFF, and validates both exact round-trip matching and one-pixel drift cases where
-the Instance-Code changes while the Data-Code can remain retrievable by Hamming distance.
+OME-TIFF, TIFF, BioImage Archive TIFF, CZI, ND2, OIR, and LIF, re-encodes readable scenes from `iscc-bio`'s own
+IMAGEWALK plane extraction into OME-TIFF, DEFLATE-compressed OME-TIFF, and OME-Zarr, runs pinned Bio-Formats
+`bfconvert` as an independent converter to OME-TIFF, and validates both exact round-trip matching and one-pixel
+drift cases where the Instance-Code changes while the Data-Code can remain retrievable by Hamming distance.
 
 Run the network-free smoke tests:
 
@@ -56,8 +58,8 @@ Generated downloads and converted intermediate files are written below `experime
 
 ### Key Features
 
-- **Format-Agnostic Hashing**: Generate reproducible ISCCs at the level of pixel data across OME-TIFF, OME-Zarr,
-    OMERO, CZI, ND2, LIF, and other formats
+- **Format-Agnostic Hashing**: Generate content-derived identifiers at the level of decoded pixel data across
+    OME-TIFF, OME-Zarr, OMERO, CZI, ND2, LIF, and other formats when readers expose equivalent canonical planes
 - **IMAGEWALK Implementation**: Deterministic Z→C→T plane traversal with canonical byte representation
 - **Multi-Source Support**: Process local files (via BioIO), OME-Zarr archives, and OMERO remote servers
 - **Memory Efficient**: Lazy loading with Dask for processing large multi-dimensional images

@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use iscc-bio, please cite it using the metadata from this file."
+title: "iscc-bio: ISCC Processing for Bioimage Data"
+type: software
+authors:
+  - family-names: Pan
+    given-names: Titusz
+    orcid: "https://orcid.org/0000-0002-0521-4214"
+version: "0.1.0"
+date-released: "2026-06-14"
+license: Apache-2.0
+repository-code: "https://github.com/bio-codes/iscc-bio"
+url: "https://bio.iscc.codes"
+abstract: "iscc-bio generates ISCC-based content identifiers for multi-dimensional bioimage data using deterministic IMAGEWALK plane traversal."
+keywords:
+  - ISCC
+  - bioimage
+  - microscopy
+  - content identification
+  - OME-TIFF
+  - OME-Zarr
