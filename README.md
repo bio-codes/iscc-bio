@@ -26,11 +26,11 @@ Documentation: https://bio.iscc.codes
 ### JOSS paper and reproducible experiment
 
 This repository includes a draft JOSS paper at `paper/paper.md` and a bounded conversion-matching experiment at
-`experiments/joss_conversion_matching.py`. The experiment downloads a small public Open Microscopy sample corpus
-with pinned byte sizes and SHA-256 digests, re-encodes readable scenes from `iscc-bio`'s own IMAGEWALK plane
-extraction into OME-TIFF, DEFLATE-compressed OME-TIFF, and OME-Zarr, and validates both exact round-trip matching
-and one-pixel drift cases where the Instance-Code changes while the Data-Code can remain retrievable by Hamming
-distance.
+`experiments/joss_conversion_matching.py`. The experiment downloads a small pinned public corpus spanning
+OME-TIFF, TIFF, CZI, ND2, OIR, and LIF, re-encodes readable scenes from `iscc-bio`'s own IMAGEWALK plane
+extraction into OME-TIFF, DEFLATE-compressed OME-TIFF, and OME-Zarr, runs pinned Bio-Formats `bfconvert` as an
+independent converter to OME-TIFF, and validates both exact round-trip matching and one-pixel drift cases where
+the Instance-Code changes while the Data-Code can remain retrievable by Hamming distance.
 
 Run the network-free smoke tests:
 
@@ -39,11 +39,14 @@ uv sync --python 3.11 --extra ome-tiff --extra ome-zarr-plugin --extra tifffile 
 uv run --python 3.11 pytest tests/test_joss_conversion_matching.py
 ```
 
-Run the public-data experiment over the first four samples, which use OME-TIFF/TIFF readers available in the
-command above:
+Run the public-data experiment over the pinned corpus. The default run requires Java, downloads the 51 MB pinned
+Bio-Formats `bftools` archive, and uses `bfconvert`; pass `--external-tools none` to skip external converter
+downloads, or `--external-tools all --allow-large-tool-downloads` to also request the gated
+`bioformats2raw`/`raw2ometiff` pipeline.
 
 ```bash
-uv run --python 3.11 python experiments/joss_conversion_matching.py --max-samples 4
+uv sync --python 3.11 --extra all --dev
+uv run --python 3.11 python experiments/joss_conversion_matching.py
 ```
 
 Generated downloads and converted intermediate files are written below `experiments/cache/` and

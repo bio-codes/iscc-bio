@@ -105,26 +105,29 @@ canonicalization.
 # Reproducible conversion experiment
 
 The repository includes a bounded experiment in `experiments/joss_conversion_matching.py`. It acquires a small
-public corpus from Open Microscopy sample data, including OME-TIFF, TIFF, Olympus OIR, and Leica LIF examples
-when the corresponding readers are installed. The manifest pins both byte sizes and SHA-256 digests for the
-public downloads. For each readable sample, the script:
+public corpus spanning OME-TIFF, plain TIFF, Zeiss CZI, Nikon ND2, Olympus OIR, and Leica LIF samples. The
+manifest pins URLs, byte sizes, and SHA-256 digests for both public image downloads and external converter
+archives. For each readable sample, the script:
 
 1. downloads the sample into an ignored local cache, refusing files above a fixed size limit;
-2. computes the original scene-level BioCode with `iscc-bio`;
-3. materializes each scene from `iscc-bio`'s own IMAGEWALK plane extraction as a dense `TCZYX` array;
-4. writes normalized OME-TIFF, DEFLATE-compressed OME-TIFF, and single-scale OME-Zarr round-trip variants;
-5. writes matched OME-TIFF and OME-Zarr variants after a deterministic one-pixel perturbation that simulates
+2. computes the original scene-level BioCode with `iscc-bio` and the available BioIO reader plugins;
+3. converts the original source file to OME-TIFF with pinned Bio-Formats `bfconvert` 8.5.0 [@bioformats];
+4. materializes each scene from `iscc-bio`'s own IMAGEWALK plane extraction as a dense `TCZYX` array;
+5. writes normalized OME-TIFF, DEFLATE-compressed OME-TIFF, and single-scale OME-Zarr round-trip variants;
+6. writes matched OME-TIFF and OME-Zarr variants after a deterministic one-pixel perturbation that simulates
    small decoded-data drift from codec or decoder differences;
-6. recomputes BioCodes for the converted variants; and
-7. records exact composite equality, Data-Code equality, Instance-Code equality, Data-Code Hamming distance, and
+7. recomputes BioCodes for the converted variants; and
+8. records exact composite equality, Data-Code equality, Instance-Code equality, Data-Code Hamming distance, and
    Instance-Code Hamming distance for each scene.
 
 The generated paper table is tracked in `paper/experiment-results.md`, and the script also writes the summary
-figure in Figure 1. The current run used a 64-bit near-match threshold for 256-bit Data-Code units. Exact OME-TIFF
-and OME-Zarr round trips matched for all tested samples. Drifted conversions changed Instance-Code units in every
-case; the Data-Code stayed within the near-match threshold for the larger public samples and exceeded it for the
-two smallest scenes, illustrating that Data-Code retrieval is robust to small perturbations when enough canonical
-content remains shared, but is not a universal invariant.
+figure in Figure 1. The current run used a 64-bit near-match threshold for 256-bit Data-Code units. Exact
+`iscc-bio` OME-TIFF and OME-Zarr round trips matched for all five source samples that BioIO decoded locally.
+Drifted conversions changed Instance-Code units in every case, while Data-Code distances stayed within threshold
+for all tested drift rows. Independent `bfconvert` conversions matched exactly for OME-TIFF, TIFF, and ND2; CZI
+and LIF differed, exposing real converter/reader interpretation differences rather than hiding them. The Olympus
+OIR fixture is retained in the pinned manifest but marked as skipped in this environment because the installed
+reader stack could not decode it.
 
 ![Conversion matching outcomes. Exact rows preserve both Data-Code and Instance-Code. Near rows have changed
 Instance-Codes but Data-Code Hamming distance at or below the 64/256-bit threshold.](figures/conversion-matching.png)
@@ -133,23 +136,31 @@ Instance-Codes but Data-Code Hamming distance at or below the 64/256-bit thresho
 
 | variant | tool | target format | drifted pixels | rows | exact | near | mismatch | skip/error | Data-Code Hamming median (min-max) | Instance-Code Hamming median |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ome_tiff_tifffile` | `tifffile` | OME-TIFF | 0 | 4 | 4 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
-| `ome_tiff_tifffile_deflate` | `tifffile(deflate)` | OME-TIFF | 0 | 4 | 4 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
-| `ome_tiff_tifffile_one_pixel_drift` | `tifffile+synthetic-drift` | OME-TIFF | 1 | 4 | 0 | 2 | 2 | 0/0 | 55.5 (0-120) | 134 |
-| `ome_zarr_ome_zarr_py` | `ome-zarr-py` | OME-Zarr | 0 | 4 | 4 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
-| `ome_zarr_ome_zarr_py_one_pixel_drift` | `ome-zarr-py+synthetic-drift` | OME-Zarr | 1 | 4 | 0 | 2 | 2 | 0/0 | 55.5 (0-120) | 134 |
+| `ome_tiff_bfconvert` | `bfconvert 8.5.0` | OME-TIFF | 0 | 8 | 3 | 0 | 5 | 0/0 | 0 (0-137) | 0 |
+| `ome_tiff_tifffile` | `tifffile` | OME-TIFF | 0 | 5 | 5 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
+| `ome_tiff_tifffile_deflate` | `tifffile(deflate)` | OME-TIFF | 0 | 5 | 5 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
+| `ome_tiff_tifffile_one_pixel_drift` | `tifffile+synthetic-drift` | OME-TIFF | 1 | 5 | 0 | 5 | 0 | 0/0 | 0 (0-5) | 129 |
+| `ome_zarr_ome_zarr_py` | `ome-zarr-py` | OME-Zarr | 0 | 5 | 5 | 0 | 0 | 0/0 | 0 (0-0) | 0 |
+| `ome_zarr_ome_zarr_py_one_pixel_drift` | `ome-zarr-py+synthetic-drift` | OME-Zarr | 1 | 5 | 0 | 5 | 0 | 0/0 | 0 (0-5) | 129 |
+| `source_decode` | `BioIO` | OIR | 0 | 1 | 0 | 0 | 0 | 1/0 | n/a (n/a-n/a) | n/a |
+
+The default experiment now requires Java, downloads the pinned 51 MB Bio-Formats command-line archive, and runs
+`bfconvert` as an actual independent converter. The larger `bioformats2raw` and `raw2ometiff` archives are pinned
+in the manifest and can be enabled with `--external-tools all --allow-large-tool-downloads`, but they are gated
+because their combined download size is over 400 MB. We also evaluated Bisque BioImage Convert (`imgcnv`)
+[@bisque], which historically supported many biological image formats, but excluded it from the automated
+experiment because the linked download/source infrastructure was unavailable during evaluation and no maintained
+Python package or reliable pinned binary could be found.
 
 The experiment is intentionally small enough to run during review while still covering multiple public microscopy
-sources, target encodings, writer stacks, and the Data-Code/Instance-Code split that motivates ISCC-SUM in
-`iscc-bio`. It reports JSON and CSV artifacts under `experiments/results/`, and also records the availability of
-independent Bio-Formats command-line tools (`bfconvert`, `bioformats2raw`, `raw2ometiff`) in the manifest so that
-future runs can add them without changing the result schema. Network access is not required for tests: the test
-suite creates synthetic multi-Z, multi-channel data and verifies that OME-TIFF and OME-Zarr round trips preserve
-`iscc-bio` BioCodes, while a one-pixel perturbation test verifies Data-Code near matching with Instance-Code
-mismatch.
+sources, target encodings, writer stacks, an independent Bio-Formats converter, and the Data-Code/Instance-Code
+split that motivates ISCC-SUM in `iscc-bio`. It reports JSON and CSV artifacts under `experiments/results/`.
+Network access is not required for tests: the test suite creates synthetic multi-Z, multi-channel data and verifies
+that OME-TIFF and OME-Zarr round trips preserve `iscc-bio` BioCodes, that a fake `bfconvert` source-file converter
+path is evaluated, and that a one-pixel perturbation verifies Data-Code near matching with Instance-Code mismatch.
 
 The experiment also makes failures explicit. If an optional BioIO reader is not installed or cannot decode a
-public source, the result row records that error rather than silently removing the sample. This is important for
+public source, the result row records a skip/error rather than silently removing the sample. This is important for
 reproducibility in bioimaging, where format support often depends on optional plugins, Java/Bio-Formats
 integration, or reader version details.
 
