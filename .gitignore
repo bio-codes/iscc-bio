@@ -23,3 +23,7 @@ context
 GEMINI.md
 AGENTS.md
 exp
+
+# Reproducible experiment data and outputs
+experiments/cache/
+experiments/results/

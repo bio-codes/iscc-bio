@@ -27,7 +27,9 @@ repos:
     hooks:
       - id: mdformat
         args: [--end-of-line, lf, --wrap, "112", --number]
-        exclude: '^(\.venv/|\.venv-wsl/)'
+        # JOSS paper Markdown uses Pandoc YAML frontmatter that mdformat rewrites
+        # as a thematic break; keep paper/ files under Pandoc/JOSS formatting.
+        exclude: '^(\.venv/|\.venv-wsl/|paper/)'
         additional_dependencies:
           - mdformat-mkdocs
           - mdformat-footnote

@@ -24,6 +24,32 @@ This produces consistent, reproducible content identifiers regardless of source 
 
 Documentation: https://bio.iscc.codes
 
+### JOSS paper and reproducible experiment
+
+This repository includes a draft JOSS paper at `paper/paper.md` and a bounded conversion-matching experiment at
+`experiments/joss_conversion_matching.py`. The experiment downloads a small public Open Microscopy sample corpus
+with pinned byte sizes and SHA-256 digests, re-encodes readable scenes from `iscc-bio`'s own IMAGEWALK plane
+extraction into OME-TIFF and OME-Zarr, and verifies whether scene-level BioCodes remain identical after those
+pixel-preserving round trips.
+
+Run the network-free smoke tests:
+
+```bash
+uv sync --python 3.11 --extra ome-tiff --extra ome-zarr-plugin --extra tifffile --extra imageio --dev
+uv run --python 3.11 pytest tests/test_joss_conversion_matching.py
+```
+
+Run the public-data experiment over the first four samples, which use OME-TIFF/TIFF readers available in the
+command above:
+
+```bash
+uv run --python 3.11 python experiments/joss_conversion_matching.py --max-samples 4
+```
+
+Generated downloads and results are written below `experiments/cache/` and `experiments/results/`, which are
+ignored by git. Full-corpus runs include optional OIR and LIF samples and therefore require the corresponding
+BioIO reader extras.
+
 ### Key Features
 
 - **Format-Agnostic Hashing**: Generate reproducible ISCCs at the level of pixel data across OME-TIFF, OME-Zarr,
