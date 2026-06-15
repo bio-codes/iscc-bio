@@ -13,6 +13,7 @@ def biocode(
     source=None,
     *,
     simprints=False,
+    content_codes=False,
     bits=256,
     source_type="auto",
     host=None,
@@ -37,6 +38,7 @@ def biocode(
 
     :param source: Path to bioimage file or zarr directory (for local sources)
     :param simprints: Generate per-plane data-code simprints (DATA_NONE_V0)
+    :param content_codes: Generate Content-Code-Mixed sidecar units (CONTENT_MIXED_V0)
     :param bits: Bit length for ISCC codes (default: 256)
     :param source_type: Source type hint — ``"auto"``, ``"bioio"``, or ``"zarr"``
     :param host: OMERO server hostname (e.g., ``"omero.server.com"``)
@@ -104,6 +106,7 @@ def biocode(
             fid=fid,
             conn=conn,
             simprints=simprints,
+            content_codes=content_codes,
             bits=bits,
         )
 
@@ -112,6 +115,7 @@ def biocode(
             source,
             source_type=source_type,
             simprints=simprints,
+            content_codes=content_codes,
             bits=bits,
         )
 
@@ -120,7 +124,7 @@ def biocode(
     )
 
 
-def _biocode_local(source, *, source_type, simprints, bits):
+def _biocode_local(source, *, source_type, simprints, content_codes, bits):
     """Generate biocode from a local file or zarr directory."""
     from iscc_bio.imagewalk import iter_planes_bioio, iter_planes_ngff
 
@@ -145,10 +149,14 @@ def _biocode_local(source, *, source_type, simprints, bits):
             f"Unknown source_type: {source_type!r} (expected 'auto', 'bioio', or 'zarr')"
         )
 
-    return generate_biocode(planes, simprints=simprints, bits=bits)
+    return generate_biocode(
+        planes, simprints=simprints, content_codes=content_codes, bits=bits
+    )
 
 
-def _biocode_omero(*, host, port, username, password, iid, fid, conn, simprints, bits):
+def _biocode_omero(
+    *, host, port, username, password, iid, fid, conn, simprints, content_codes, bits
+):
     """Generate biocode from an OMERO server."""
     from iscc_bio.imagewalk import iter_planes_blitz_image, iter_planes_blitz_fileset
 
@@ -187,7 +195,9 @@ def _biocode_omero(*, host, port, username, password, iid, fid, conn, simprints,
                 raise ValueError(f"Image {iid} not found on OMERO server")
             planes = iter_planes_blitz_image(conn, image)
 
-        return generate_biocode(planes, simprints=simprints, bits=bits)
+        return generate_biocode(
+            planes, simprints=simprints, content_codes=content_codes, bits=bits
+        )
     finally:
         if own_conn:
             conn.close()

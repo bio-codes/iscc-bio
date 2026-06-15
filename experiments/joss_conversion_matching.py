@@ -250,6 +250,9 @@ class MatchRow:
     data_near_match: bool = False
     data_code_equal: bool = False
     instance_code_equal: bool = False
+    mixed_content_equal: bool = False
+    mixed_content_hamming: int = -1
+    mixed_content_bits: int = 0
     data_hamming: int = -1
     instance_hamming: int = -1
     data_bits: int = ISCC_UNIT_BITS
@@ -277,6 +280,9 @@ class CodeComparison:
     data_near_match: bool
     data_code_equal: bool
     instance_code_equal: bool
+    mixed_content_equal: bool
+    mixed_content_hamming: int
+    mixed_content_bits: int
     data_hamming: int
     instance_hamming: int
     data_bits: int
@@ -882,7 +888,13 @@ def converter_registry(external_tools: str = "bftools") -> tuple[Converter, ...]
 
 
 def code_for_path(path: Path, *, source_type: str) -> list[dict]:
-    return biocode(path, source_type=source_type, simprints=False, bits=ISCC_UNIT_BITS)
+    return biocode(
+        path,
+        source_type=source_type,
+        simprints=False,
+        content_codes=True,
+        bits=ISCC_UNIT_BITS,
+    )
 
 
 def code_identity(entry: dict) -> tuple[str, list[str]]:
@@ -903,6 +915,19 @@ def code_identity(entry: dict) -> tuple[str, list[str]]:
     ):
         raise TypeError(f"unexpected biocode entry shape: {entry!r}")
     return iscc_code, units
+
+
+def content_mixed_unit(entry: dict) -> str | None:
+    """Return the optional CONTENT_MIXED_V0 sidecar unit from a biocode entry."""
+
+    content_codes = entry.get("content_codes")
+    if not isinstance(content_codes, dict):
+        return None
+    mixed = content_codes.get("CONTENT_MIXED_V0")
+    if not isinstance(mixed, dict):
+        return None
+    iscc = mixed.get("iscc")
+    return iscc if isinstance(iscc, str) else None
 
 
 def unit_body(code: str) -> bytes:
@@ -938,6 +963,17 @@ def compare_entries(
     data_code_equal = left_data == right_data
     instance_code_equal = left_instance == right_instance
     data_near_match = data_hamming <= data_hamming_threshold
+    left_mixed = content_mixed_unit(left_entry)
+    right_mixed = content_mixed_unit(right_entry)
+    mixed_content_equal = bool(left_mixed and right_mixed and left_mixed == right_mixed)
+    if left_mixed and right_mixed:
+        mixed_content_hamming = hamming_distance(
+            unit_body(left_mixed), unit_body(right_mixed)
+        )
+        mixed_content_bits = len(unit_body(left_mixed)) * 8
+    else:
+        mixed_content_hamming = -1
+        mixed_content_bits = 0
 
     if left_sum == right_sum and data_code_equal and instance_code_equal:
         status = "exact_match"
@@ -956,6 +992,9 @@ def compare_entries(
         data_near_match=data_near_match,
         data_code_equal=data_code_equal,
         instance_code_equal=instance_code_equal,
+        mixed_content_equal=mixed_content_equal,
+        mixed_content_hamming=mixed_content_hamming,
+        mixed_content_bits=mixed_content_bits,
         data_hamming=data_hamming,
         instance_hamming=instance_hamming,
         data_bits=data_bits,
@@ -1018,6 +1057,9 @@ def comparison_row(
         data_near_match=comparison.data_near_match,
         data_code_equal=comparison.data_code_equal,
         instance_code_equal=comparison.instance_code_equal,
+        mixed_content_equal=comparison.mixed_content_equal,
+        mixed_content_hamming=comparison.mixed_content_hamming,
+        mixed_content_bits=comparison.mixed_content_bits,
         data_hamming=comparison.data_hamming,
         instance_hamming=comparison.instance_hamming,
         data_bits=comparison.data_bits,
@@ -1390,6 +1432,8 @@ def summarize_rows(rows: Sequence[MatchRow], results_dir: Path) -> dict:
         if rows
         else DEFAULT_DATA_HAMMING_THRESHOLD,
         "data_bits": ISCC_UNIT_BITS,
+        "mixed_content_equal_rows": sum(row.mixed_content_equal for row in rows),
+        "mixed_content_bits": max((row.mixed_content_bits for row in rows), default=0),
         "results_dir": str(results_dir),
     }
     (results_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -1417,6 +1461,11 @@ def summarize_by_variant(rows: Sequence[MatchRow]) -> list[dict[str, object]]:
         instance_distances = [
             row.instance_hamming for row in variant_rows if row.instance_hamming >= 0
         ]
+        mixed_distances = [
+            row.mixed_content_hamming
+            for row in variant_rows
+            if row.mixed_content_hamming >= 0
+        ]
         statuses = Counter(row.status for row in variant_rows)
         first = variant_rows[0]
         table.append(
@@ -1434,6 +1483,13 @@ def summarize_by_variant(rows: Sequence[MatchRow]) -> list[dict[str, object]]:
                 "data_hamming_min": min(distances) if distances else "n/a",
                 "data_hamming_median": format_median(distances),
                 "data_hamming_max": max(distances) if distances else "n/a",
+                "mixed_content_equal": sum(
+                    row.mixed_content_equal for row in variant_rows
+                ),
+                "mixed_content_hamming_median": format_median(mixed_distances),
+                "mixed_content_hamming_max": max(mixed_distances)
+                if mixed_distances
+                else "n/a",
                 "instance_hamming_median": format_median(instance_distances),
             }
         )
@@ -1452,6 +1508,8 @@ def markdown_table(rows: Sequence[dict[str, object]]) -> str:
         "mismatch",
         "skip/error",
         "Data-Code Hamming median (min-max)",
+        "Content-Code-Mixed equal",
+        "Content-Code-Mixed Hamming median (max)",
         "Instance-Code Hamming median",
     ]
     lines = [
@@ -1460,6 +1518,7 @@ def markdown_table(rows: Sequence[dict[str, object]]) -> str:
     ]
     for row in rows:
         data_range = f"{row['data_hamming_median']} ({row['data_hamming_min']}-{row['data_hamming_max']})"
+        mixed_range = f"{row['mixed_content_hamming_median']} ({row['mixed_content_hamming_max']})"
         lines.append(
             "| "
             + " | ".join(
@@ -1474,6 +1533,8 @@ def markdown_table(rows: Sequence[dict[str, object]]) -> str:
                     str(row["mismatch"]),
                     f"{row['skip']}/{row['error']}",
                     data_range,
+                    str(row["mixed_content_equal"]),
+                    mixed_range,
                     str(row["instance_hamming_median"]),
                 ]
             )
@@ -1490,7 +1551,10 @@ def write_paper_table(rows: Sequence[MatchRow], summary: dict, path: Path) -> No
         "The conversion experiment produced "
         f"{summary['rows']} comparison rows across {summary['samples_with_rows']} public samples. "
         f"The Data-Code near-match threshold was {summary['data_hamming_threshold']} bits "
-        f"out of {summary['data_bits']} bits.\n\n" + markdown_table(table_rows) + "\n"
+        f"out of {summary['data_bits']} bits. The Content-Code-Mixed sidecar matched exactly "
+        f"in {summary['mixed_content_equal_rows']} rows.\n\n"
+        + markdown_table(table_rows)
+        + "\n"
     )
     path.write_text(content)
 

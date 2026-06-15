@@ -33,7 +33,10 @@ This repository includes a draft JOSS paper at `paper/paper.md` and a bounded co
 OME-TIFF, TIFF, BioImage Archive TIFF, CZI, ND2, OIR, and LIF, re-encodes readable scenes from `iscc-bio`'s own
 IMAGEWALK plane extraction into OME-TIFF, DEFLATE-compressed OME-TIFF, and OME-Zarr, runs pinned Bio-Formats
 `bfconvert` as an independent converter to OME-TIFF, and validates both exact round-trip matching and one-pixel
-drift cases where the Instance-Code changes while the Data-Code can remain retrievable by Hamming distance.
+drift cases where the Instance-Code changes while the Data-Code can remain retrievable by Hamming distance. The
+experiment also reports optional Content-Code-Mixed sidecars generated from deterministic IMAGEWALK-selected
+planes; these sidecars remain stable for the DEFLATE-compressed and one-pixel-drift variants in the current
+corpus.
 
 Run the network-free smoke tests:
 
@@ -60,6 +63,8 @@ Generated downloads and converted intermediate files are written below `experime
 
 - **Format-Agnostic Hashing**: Generate content-derived identifiers at the level of decoded pixel data across
     OME-TIFF, OME-Zarr, OMERO, CZI, ND2, LIF, and other formats when readers expose equivalent canonical planes
+- **Content-Code-Mixed Sidecars**: Optionally derive standard ISCC mixed content units from deterministic
+    IMAGEWALK-selected planes for content-layer comparison in controlled drift cases
 - **IMAGEWALK Implementation**: Deterministic Z→C→T plane traversal with canonical byte representation
 - **Multi-Source Support**: Process local files (via BioIO), OME-Zarr archives, and OMERO remote servers
 - **Memory Efficient**: Lazy loading with Dask for processing large multi-dimensional images
@@ -122,6 +127,9 @@ iscc-bio biocode --host omero.server.com --iid 123  # OMERO server
 
 # With per-plane simprints for similarity search:
 iscc-bio biocode myimage.czi --simprints
+
+# With a Content-Code-Mixed sidecar for content-layer matching:
+iscc-bio biocode myimage.czi --content-codes
 ```
 
 #### Generate Imagecode (Experimental)
@@ -205,6 +213,7 @@ iscc-bio biocode INPUT [OPTIONS]
 Options:
   -s, --source [auto|bioio|omero|zarr]  Data source type
   --simprints                           Generate per-plane simprints
+  --content-codes                       Generate Content-Code-Mixed sidecars
   --host TEXT                           OMERO server hostname
   --iid INTEGER                         OMERO image ID
   --fid INTEGER                         OMERO fileset ID
@@ -292,8 +301,9 @@ from iscc_bio.imagewalk import iter_planes_bioio
 
 # Generate biocode for all scenes
 planes = iter_planes_bioio("image.lif")
-results = generate_biocode(planes)
+results = generate_biocode(planes, content_codes=True)
 print(results[0]["iscc_code"])  # ISCC-SUM for first scene
+print(results[0]["content_codes"]["CONTENT_MIXED_V0"]["iscc"])  # sidecar unit
 ```
 
 ### Generate Imagecode (Experimental)

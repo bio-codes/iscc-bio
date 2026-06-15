@@ -109,6 +109,20 @@ def test_local_file_with_simprints(tmp_path):
     assert len(results[0]["simprints"]["DATA_NONE_V0"]) == 3
 
 
+def test_local_file_with_content_codes(tmp_path):
+    """Content-Code-Mixed sidecar flag is passed through to generate_biocode."""
+    dummy = tmp_path / "test.tif"
+    dummy.write_bytes(b"dummy")
+    planes = [make_plane(z=z, value=z * 10) for z in range(3)]
+
+    with patch("iscc_bio.imagewalk.iter_planes_bioio", return_value=iter(planes)):
+        results = biocode(str(dummy), content_codes=True)
+
+    sidecar = results[0]["content_codes"]["CONTENT_MIXED_V0"]
+    assert sidecar["iscc"].startswith("ISCC:")
+    assert sidecar["offsets"] == [0, 1, 2]
+
+
 def test_zarr_auto_detection_by_suffix(tmp_path):
     """Files with .zarr suffix use the NGFF iterator."""
     zarr_dir = tmp_path / "test.zarr"

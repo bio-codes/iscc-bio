@@ -1,5 +1,6 @@
 ---
 title: 'iscc-bio: Deterministic content identifiers for bioimage data'
+author: Titusz Pan
 tags:
   - Python
   - bioimaging
@@ -13,6 +14,7 @@ authors:
     orcid: 0000-0002-0521-4214
     affiliation: "1"
     corresponding: true
+    email: tp@iscc.io
 affiliations:
   - name: ISCC Foundation, Germany
     index: 1
@@ -38,13 +40,11 @@ is derived from normalized pixel planes in deterministic scene, Z, channel, and 
 
 # Statement of need
 
-Scientific bioimage collections increasingly combine proprietary microscope formats, OME-TIFF exports,
-cloud-native OME-NGFF/Zarr stores, and repository systems such as OMERO [@ome; @ome_ngff; @omero]. Cryptographic
-file checksums are valuable for bitstream integrity, but they are not enough for cross-format bioimage
-workflows: a TIFF-to-Zarr conversion, a different chunk shape, or a metadata-preserving reserialization changes
-the file bytes even when the decoded pixel planes are unchanged. Researchers, archives, and infrastructure
-projects therefore need reproducible identifiers that can be computed after decoding image content, while still
-preserving enough determinism for independent verification.
+Scientific bioimage collections combine proprietary microscope formats, OME-TIFF exports, OME-NGFF/Zarr stores,
+and repository systems such as OMERO [@ome; @ome_ngff; @omero]. File checksums verify bitstream integrity, but a
+TIFF-to-Zarr conversion, different chunk shape, or metadata-preserving reserialization changes bytes even when
+decoded pixels are unchanged. Researchers and archives therefore need identifiers computed after decoding image
+content while preserving deterministic verification.
 
 `iscc-bio` provides a pixel-canonical layer for the ISCC ecosystem. It uses BioIO reader plugins
 [@bioio] and OME-Zarr tooling [@ome_zarr_py] to traverse bioimage planes without loading an entire dataset into
@@ -58,28 +58,28 @@ This scope is deliberately narrower than semantic image understanding. Exact `is
 that compared inputs produced the same canonical pixel stream under IMAGEWALK. When a conversion introduces a
 small decoded-pixel perturbation, exact equality should fail: the Instance-Code is a BLAKE3-based digest and
 changes [@iscc_core]. For the controlled one-pixel drifts tested here, the Data-Code remained within a low
-Hamming-distance search threshold. Lossy compression, intensity rescaling, channel projection, or
-non-canonical rendering choices can still produce large Data-Code distances, so the package reports component
-codes and distances rather than collapsing every comparison to a single pass/fail value.
+Hamming-distance search threshold. The optional Content-Code-Mixed sidecar samples up to three IMAGEWALK planes,
+computes standard ISCC Image Content-Codes, and combines them with the standard mixed-code construction; in the
+tested conditions it supports content-layer comparison without changing Data-Code or Instance-Code semantics. Lossy
+compression, intensity rescaling, channel projection, or non-canonical rendering choices can still produce large
+distances, so the package reports component codes and distances rather than collapsing every comparison to a single
+pass/fail value.
 
 # State of the field
 
-Bioimage data-management tools such as OME-TIFF, OME-NGFF/Zarr, BioIO, and OMERO make microscopy data readable
-across laboratories and archives [@ome; @ome_ngff; @bioio; @omero]. They do not, by themselves, define a
-container-independent content identifier for decoded bioimage pixels. Conversely, generic cryptographic hashes
-identify exact byte streams but intentionally change after benign reserialization. `iscc-bio` contributes a
-focused bridge between these layers: it uses existing microscopy readers and storage models, but derives ISCC
-BioCodes from a deterministic traversal of decoded pixel planes.
+OME-TIFF, OME-NGFF/Zarr, BioIO, and OMERO make microscopy data readable across tools [@ome; @ome_ngff; @bioio;
+@omero], but do not define a container-independent identifier for decoded bioimage pixels. Generic cryptographic
+hashes identify exact byte streams. `iscc-bio` bridges these layers by deriving BioCodes from deterministic decoded
+plane traversal.
 
 # Software design
 
 The package separates source access, traversal, and code generation. Source-specific iterators produce a common
 `Plane` structure for BioIO-readable files, OME-NGFF/Zarr stores, and OMERO sources. `generate_biocode` consumes
-that iterator without needing to know the original container, updates ISCC data and instance hashers with
-canonical row-major plane bytes, and emits one result per scene. This keeps the matching claim local and
-auditable: if two sources yield the same ordered canonical planes, they should yield the same scene-level
-BioCode. Matching across different readers or converters therefore depends on those tools exposing equivalent
-plane order and pixel values, not merely on the containers describing the same biological acquisition.
+that iterator, updates ISCC data and instance hashers with canonical row-major plane bytes, and emits one result
+per scene. This keeps the matching claim local: if two sources yield the same ordered canonical planes, they should
+yield the same scene-level BioCode. Matching across readers or converters depends on those tools exposing
+equivalent plane order and pixel values, not merely on containers describing the same acquisition.
 
 # Research impact statement
 
@@ -98,6 +98,7 @@ The core package provides:
 
 - deterministic IMAGEWALK plane traversal for BioIO-readable files, OME-NGFF/Zarr stores, and OMERO images;
 - scene-level BioCode generation using ISCC Data-Code and Instance-Code units over canonical plane bytes;
+- optional Content-Code-Mixed sidecars from deterministic IMAGEWALK-selected planes for content-layer comparison;
 - optional per-plane simprints for more granular similarity indexing;
 - representative-view extraction and experimental image-code generation for thumbnails or selected 2D views;
 - a command-line interface for `biocode`, `imagecode`, `views`, `scenes`, and thumbnail generation.
@@ -112,21 +113,23 @@ The repository includes a bounded experiment in `experiments/joss_conversion_mat
 public corpus spanning OME-TIFF, plain TIFF, BioImage Archive TIFF, Zeiss CZI, Nikon ND2, Olympus OIR, and Leica
 LIF samples. The manifest pins URLs, byte sizes, and SHA-256 digests for both public image downloads and external
 converter archives. For each readable sample, the script downloads verified inputs into an ignored cache,
-computes original scene-level BioCodes, runs pinned Bio-Formats `bfconvert` 8.5.0 [@bioformats], materializes
-IMAGEWALK planes as dense `TCZYX` arrays, writes OME-TIFF, DEFLATE OME-TIFF, OME-Zarr, and deterministic
-one-pixel-drift variants, then records composite equality plus Data-Code and Instance-Code Hamming distances.
+computes original scene-level BioCodes and optional Content-Code-Mixed sidecars, runs pinned Bio-Formats
+`bfconvert` 8.5.0 [@bioformats], materializes IMAGEWALK planes as dense `TCZYX` arrays, writes OME-TIFF,
+DEFLATE OME-TIFF, OME-Zarr, and deterministic one-pixel-drift variants, then records composite equality plus
+Data-Code, Content-Code-Mixed, and Instance-Code Hamming distances.
 
 The generated paper table is tracked in `paper/experiment-results.md`, and the script also writes the summary
 figure. The current run used an illustrative 64-bit near-match threshold for 256-bit Data-Code units. Exact
 `iscc-bio` OME-TIFF and OME-Zarr round trips matched for all six source samples that BioIO decoded locally.
 Drifted conversions changed Instance-Code units in every case, while Data-Code distances stayed within threshold
-for all tested drift rows. Independent `bfconvert` conversions matched exactly for OME-TIFF, plain TIFF,
-BioImage Archive TIFF, and ND2; CZI and LIF produced reader/converter-dependent outputs, including LIF
-scene-count differences, rather than being hidden by the experiment. The Olympus
+and Content-Code-Mixed sidecars stayed identical for all tested drift rows. DEFLATE-compressed OME-TIFF round
+trips also preserved the mixed sidecar for all decoded samples. Independent `bfconvert` conversions matched
+exactly for OME-TIFF, plain TIFF, BioImage Archive TIFF, and ND2; CZI and LIF produced reader/converter-dependent
+outputs, including LIF scene-count differences, rather than being hidden by the experiment. The Olympus
 OIR fixture is retained in the pinned manifest but marked as skipped in this environment because the installed
 reader stack could not decode it.
 
-![Conversion matching outcomes. Exact rows preserve both Data-Code and Instance-Code. Near rows have changed Instance-Codes but Data-Code Hamming distance at or below the 64/256-bit threshold. \label{fig:conversion-matching}](figures/conversion-matching.png)
+![Conversion matching outcomes. Exact rows preserve both Data-Code and Instance-Code. Near rows have changed Instance-Codes but Data-Code Hamming distance at or below the 64/256-bit threshold; Content-Code-Mixed equality is reported separately. \label{fig:conversion-matching}](figures/conversion-matching.png)
 
 The generated CSV contains 40 comparison rows across seven public samples. Summarized by conversion condition:
 
@@ -135,7 +138,8 @@ The generated CSV contains 40 comparison rows across seven public samples. Summa
 - `tifffile` OME-TIFF and DEFLATE-compressed OME-TIFF round trips produced six exact matches each.
 - `ome-zarr-py` OME-Zarr round trips produced six exact matches.
 - Deterministic one-pixel drift variants for OME-TIFF and OME-Zarr produced twelve near matches: all changed the
-  Instance-Code, while Data-Code distances remained within the 64/256-bit threshold.
+  Instance-Code, while Data-Code distances remained within the 64/256-bit threshold and Content-Code-Mixed units
+  remained identical.
 - The Olympus OIR source was retained in the pinned corpus and reported as a reader skip in this environment.
 
 The full generated result table is kept in `paper/experiment-results.md` and the machine-readable CSV/JSON

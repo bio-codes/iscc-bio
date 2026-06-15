@@ -1,8 +1,9 @@
 """Tests for biocode (scene-level ISCC-SUM) generation."""
 
 import numpy as np
+import iscc_lib
 from iscc_bio.imagewalk.common import Plane
-from iscc_bio.biocode import generate_biocode
+from iscc_bio.biocode import _selected_mixed_content_code, generate_biocode
 
 
 def make_plane(scene_idx=0, z=0, c=0, t=0, shape=(64, 64), dtype=np.uint8, value=None):
@@ -50,6 +51,100 @@ def test_no_simprints_by_default():
     planes = [make_plane(z=z) for z in range(3)]
     results = generate_biocode(iter(planes))
     assert "simprints" not in results[0]
+
+
+def test_no_content_codes_by_default():
+    """Mixed Content-Code sidecars are opt-in."""
+    planes = [make_plane(z=z) for z in range(3)]
+    results = generate_biocode(iter(planes))
+
+    assert "content_codes" not in results[0]
+
+
+def test_mixed_content_code_sidecar_selects_three_imagewalk_planes():
+    """Opt-in Content-Code-Mixed sidecar selects first/middle/last IMAGEWALK planes."""
+    planes = [make_plane(z=z, value=z * 10) for z in range(5)]
+
+    result = generate_biocode(iter(planes), content_codes=True)[0]
+
+    sidecar = result["content_codes"]["CONTENT_MIXED_V0"]
+    assert sidecar["iscc"].startswith("ISCC:")
+    assert sidecar["offsets"] == [0, 2, 4]
+    assert sidecar["plane_count"] == 5
+    assert sidecar["selected_count"] == 3
+    assert sidecar["bits"] == 256
+    assert sidecar["derivation"] == "IMAGEWALK_MIXED_CONTENT_V0"
+    assert sidecar["mixed_input_count"] == 3
+    assert len(sidecar["image_codes"]) == 3
+
+
+def test_mixed_content_code_is_standard_content_mixed_unit():
+    """The sidecar unit uses ISCC's standard Content-Code-Mixed subtype."""
+    planes = [make_plane(z=z) for z in range(3)]
+    sidecar = generate_biocode(iter(planes), content_codes=True)[0]["content_codes"][
+        "CONTENT_MIXED_V0"
+    ]
+
+    main_type, sub_type, version, _length, _body = iscc_lib.iscc_decode(sidecar["iscc"])
+    assert main_type.name == "CONTENT"
+    assert sub_type.name == "MIXED"
+    assert version.name == "V0"
+
+
+def test_mixed_content_code_single_plane_duplicates_input_for_standard_mixed_code():
+    """A single-plane scene still emits a valid standard Mixed-Code by duplicating the plane code."""
+    sidecar = generate_biocode(iter([make_plane(value=42)]), content_codes=True)[0][
+        "content_codes"
+    ]["CONTENT_MIXED_V0"]
+
+    assert sidecar["offsets"] == [0]
+    assert sidecar["selected_count"] == 1
+    assert sidecar["mixed_input_count"] == 2
+    assert len(sidecar["image_codes"]) == 1
+    assert sidecar["iscc"].startswith("ISCC:")
+
+
+def test_mixed_content_code_is_more_stable_than_data_code_for_small_pixel_drift():
+    """The perceptual sidecar stays equal for small compression-like pixel drift."""
+    rng = np.random.default_rng(1234)
+    planes = [
+        Plane(
+            xy_array=rng.integers(0, 255, size=(96, 96), dtype=np.uint8),
+            scene_idx=0,
+            z_depth=z,
+            c_channel=0,
+            t_time=0,
+        )
+        for z in range(3)
+    ]
+    drifted = [
+        Plane(
+            xy_array=np.clip(plane.xy_array.astype(np.int16) + 1, 0, 255).astype(
+                np.uint8
+            ),
+            scene_idx=plane.scene_idx,
+            z_depth=plane.z_depth,
+            c_channel=plane.c_channel,
+            t_time=plane.t_time,
+        )
+        for plane in planes
+    ]
+
+    original = generate_biocode(iter(planes), content_codes=True)[0]
+    compressed_like = generate_biocode(iter(drifted), content_codes=True)[0]
+
+    assert original["units"][0] != compressed_like["units"][0]
+    assert (
+        original["content_codes"]["CONTENT_MIXED_V0"]["iscc"]
+        == compressed_like["content_codes"]["CONTENT_MIXED_V0"]["iscc"]
+    )
+
+
+def test_selected_mixed_content_code_deterministic():
+    """The helper is deterministic for the same IMAGEWALK plane sequence."""
+    planes = [make_plane(z=z, value=z * 17) for z in range(7)]
+
+    assert _selected_mixed_content_code(planes) == _selected_mixed_content_code(planes)
 
 
 def test_simprints_structure():

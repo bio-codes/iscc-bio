@@ -1,47 +1,43 @@
-# Mixed Content-Code spike
+# Mixed Content-Code implementation note
 
 ## Question
 
-Would an additional ISCC Content-Code-Mixed unit, generated from a deterministic subset of IMAGEWALK planes, improve `iscc-bio` robustness enough to add to the default BioCode output and JOSS experiment?
+Would an additional ISCC Content-Code-Mixed unit, generated from a deterministic subset of IMAGEWALK planes, improve `iscc-bio` robustness against conversions that add compression or tiny decoded-pixel drift?
 
-## Approach
+## Architecture
 
-A throwaway spike under `/tmp/iscc_bio_mixed_content_spike.py` tested the current JOSS conversion artifacts by:
+The production implementation keeps the scene-level BioCode unchanged: it still contains the ISCC-SUM Data-Code and Instance-Code units over canonical IMAGEWALK bytes. The mixed content code is emitted as an optional sidecar under `content_codes["CONTENT_MIXED_V0"]`, not folded into the default composite ISCC-CODE. This preserves the baseline Data/Instance semantics and follows the ISCC constraint that a composite code has a single Content subtype.
 
-1. grouping planes in IMAGEWALK order;
-2. selecting three evenly spaced plane positions per scene;
-3. normalizing each selected 2D plane to 32 × 32 grayscale `uint8`;
-4. generating standard image Content-Codes with `iscc_lib.gen_image_code_v0(..., bits=256)`;
-5. combining the selected plane codes with `iscc_lib.gen_mixed_code_v0(..., bits=256)`;
-6. comparing mixed-code bodies by Hamming distance across original and converted scenes.
+For each scene, `iscc_bio.biocode._selected_mixed_content_code`:
 
-The design is aligned with ISCC primitives: several per-plane image Content-Codes must be collapsed into a single Content-Code-Mixed unit before composition, because a composite ISCC-CODE may contain at most one Content unit.
+1. uses the existing IMAGEWALK order;
+2. selects all planes for scenes with up to three planes, otherwise first, middle, and last offsets;
+3. normalizes each selected 2D plane to 32 × 32 grayscale `uint8` using deterministic percentile clipping and bilinear resize;
+4. generates standard image Content-Codes with `iscc_lib.gen_image_code_v0(..., bits=256)`;
+5. combines them with `iscc_lib.gen_mixed_code_v0(..., bits=256)` into a standard Content-Code-Mixed unit;
+6. records the mixed unit, selected offsets, selected count, source plane count, bit length, and per-plane image Content-Codes.
 
-## Result
+`gen_mixed_code_v0` requires at least two Content-Codes, so one-plane scenes duplicate the one selected Image Content-Code internally while reporting the actual selected offset only once.
 
-The spike was technically feasible with the installed `iscc-lib` API and preserved the mixed-code `parts` list as expected.
+## Verification result
 
-Observed behavior on the current conversion artifacts:
+The generated JOSS experiment now computes the optional sidecar for original and converted scene codes and reports Content-Code-Mixed equality/Hamming distance in `results.csv`, `results.json`, and `paper/experiment-results.md`.
 
-- exact `tifffile` OME-TIFF round trips: mixed code equal for all tested scenes;
-- exact DEFLATE OME-TIFF round trips: mixed code equal for all tested scenes;
-- exact `ome-zarr-py` OME-Zarr round trips: mixed code equal for all tested scenes;
-- one-pixel drift variants: mixed code remained equal for all tested scenes;
-- problematic `bfconvert` CZI/LIF cases: mixed code also detected differences rather than rescuing them into near matches.
+Observed behavior on the current corpus:
 
-## Verdict: PARTIAL
+- exact `tifffile` OME-TIFF round trips: mixed code equal for all six decoded samples;
+- DEFLATE-compressed OME-TIFF round trips: mixed code equal for all six decoded samples;
+- exact `ome-zarr-py` OME-Zarr round trips: mixed code equal for all six decoded samples;
+- one-pixel drift variants: mixed code equal for all twelve OME-TIFF/OME-Zarr drift rows;
+- `bfconvert` exact rows: mixed code equal for the four rows that were exact Data/Instance matches;
+- problematic `bfconvert` CZI/LIF rows: mixed code detects differences rather than hiding reader/converter divergence.
 
-The mixed Content-Code is deterministic and stable for the current exact-conversion and one-pixel-drift cases, but the spike did not show enough incremental value over the existing Data-Code/Instance-Code behavior to justify adding it to the default output path for the JOSS paper.
+The current summary is 34 rows with exact Content-Code-Mixed equality out of 40 total experiment rows. The remaining rows are the OIR reader skip, CZI/LIF `bfconvert` mismatches, and LIF scene-count mismatch rows.
 
-## Recommendation
+## Verdict: IMPLEMENTED AS OPTIONAL SIDECAR
 
-Defer production integration until a larger validation set can measure retrieval precision/recall across realistic biological imaging perturbations.
+The sidecar is robust for the conversion classes this JOSS experiment is designed to exercise: lossless container compression and tiny decoded-pixel drift. It is intentionally reported at the Content layer only. Instance-Code remains exact-identity and Data-Code remains byte/canonical-stream similarity; the mixed Content-Code does not make those units compression-tolerant.
 
-If implemented later, make it optional and explicit, for example `--content-mixed`, and preserve:
+## Follow-up
 
-- the mixed Content-Code unit;
-- the per-plane image Content-Code `parts`;
-- selected plane indices and `(z, c, t)` coordinates;
-- the exact selection policy, e.g. `imagewalk_evenly_spaced_3_v0`.
-
-For one-plane scenes, prefer reporting a single per-plane image Content-Code or omitting the mixed unit rather than duplicating the same plane three times, unless fixed-cardinality output is required.
+A larger precision/recall benchmark, ideally with naturally occurring lossy microscopy codec drift, is still needed before promoting Content-Code-Mixed sidecars as a default retrieval feature or claiming broad lossy-compression robustness.

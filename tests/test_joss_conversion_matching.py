@@ -162,10 +162,12 @@ def test_one_pixel_drift_changes_instance_but_keeps_data_near_match():
     drifted_plane = original_plane.copy()
     drifted_plane[0, 0] += 1
     original = generate_biocode(
-        iter([Plane(original_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)])
+        iter([Plane(original_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)]),
+        content_codes=True,
     )[0]
     drifted = generate_biocode(
-        iter([Plane(drifted_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)])
+        iter([Plane(drifted_plane, scene_idx=0, z_depth=0, c_channel=0, t_time=0)]),
+        content_codes=True,
     )[0]
 
     comparison = joss.compare_entries(original, drifted, data_hamming_threshold=64)
@@ -174,6 +176,8 @@ def test_one_pixel_drift_changes_instance_but_keeps_data_near_match():
     assert comparison.data_near_match is True
     assert comparison.data_code_equal is False
     assert comparison.instance_code_equal is False
+    assert comparison.mixed_content_equal is True
+    assert comparison.mixed_content_hamming == 0
     assert 0 < comparison.data_hamming <= 64
     assert comparison.instance_hamming > comparison.data_hamming
 
@@ -200,8 +204,10 @@ def test_generated_paper_table_mentions_threshold(tmp_path):
         data_near_match=comparison.data_near_match,
         data_code_equal=comparison.data_code_equal,
         instance_code_equal=comparison.instance_code_equal,
+        mixed_content_equal=comparison.mixed_content_equal,
         data_hamming=comparison.data_hamming,
         instance_hamming=comparison.instance_hamming,
+        mixed_content_hamming=comparison.mixed_content_hamming,
         data_hamming_threshold=64,
     )
     summary = joss.summarize_rows([row], tmp_path)
@@ -211,6 +217,7 @@ def test_generated_paper_table_mentions_threshold(tmp_path):
 
     text = table.read_text()
     assert "Data-Code near-match threshold was 64 bits" in text
+    assert "Content-Code-Mixed" in text
     assert "drift" in text
     assert "near" in text.lower()
 

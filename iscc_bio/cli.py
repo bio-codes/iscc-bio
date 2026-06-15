@@ -452,6 +452,12 @@ def imagecode(input, output_dir, max_views):
     help="Generate per-plane data-code simprints (DATA_NONE_V0)",
 )
 @click.option(
+    "--content-codes",
+    is_flag=True,
+    default=False,
+    help="Generate sidecar Content-Code-Mixed units (CONTENT_MIXED_V0)",
+)
+@click.option(
     "--host",
     help="OMERO server hostname (e.g., omero.iscc.id)",
 )
@@ -465,7 +471,7 @@ def imagecode(input, output_dir, max_views):
     type=int,
     help="OMERO fileset ID",
 )
-def biocode(input, source, simprints, host, iid, fid):
+def biocode(input, source, simprints, content_codes, host, iid, fid):
     """Generate biocode (ISCC-SUM) for bioimage scenes.
 
     Produces one ISCC-SUM per scene with optional per-plane granular simprints
@@ -477,6 +483,7 @@ def biocode(input, source, simprints, host, iid, fid):
         results = biocode_api(
             source=str(input) if input else None,
             simprints=simprints,
+            content_codes=content_codes,
             source_type=source if source != "omero" else "auto",
             host=host,
             username="root",
