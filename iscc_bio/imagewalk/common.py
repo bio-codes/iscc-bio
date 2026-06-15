@@ -37,11 +37,17 @@ def plane_to_canonical_bytes(plane):
     :return: Flattened pixel data in big-endian byte order
     :raises ValueError: If plane is not 2-dimensional
     """
+    # Validate dimensionality before coercion: lazy array-likes (e.g. bioio's
+    # LazyBioArray) expose .ndim, so non-2D input can be rejected here without
+    # materializing it. Coercing first would force a full read just to raise.
     if plane.ndim != 2:
         raise ValueError(f"Expected 2D plane, got {plane.ndim}D")
 
-    # Flatten plane in C-order (row-major: Y then X)
-    flat = plane.flatten(order="C")
+    # Flatten plane in C-order (row-major: Y then X).
+    # Coerce to NumPy first: some bioio backends (e.g. the bffile-based
+    # bioio-bioformats >=2 reader) yield a lazy array-like from .compute()
+    # that lacks .flatten(); np.asarray() is a no-op on real ndarrays.
+    flat = np.asarray(plane).ravel(order="C")
 
     # Use numpy's tobytes() with explicit big-endian conversion
     # This is MUCH faster than struct.pack for large arrays
