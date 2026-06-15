@@ -37,6 +37,9 @@ def plane_to_canonical_bytes(plane):
     :return: Flattened pixel data in big-endian byte order
     :raises ValueError: If plane is not 2-dimensional
     """
+    # Validate dimensionality before coercion: lazy array-likes (e.g. bioio's
+    # LazyBioArray) expose .ndim, so non-2D input can be rejected here without
+    # materializing it. Coercing first would force a full read just to raise.
     if plane.ndim != 2:
         raise ValueError(f"Expected 2D plane, got {plane.ndim}D")
 

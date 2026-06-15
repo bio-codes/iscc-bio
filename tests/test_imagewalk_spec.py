@@ -125,6 +125,57 @@ class TestCanonicalByteConversion:
         with pytest.raises(ValueError, match="Expected 2D plane"):
             plane_to_canonical_bytes(plane_3d)
 
+    def test_lazy_array_like_without_flatten(self):
+        # type: () -> None
+        """Test that array-likes lacking .flatten() are materialized.
+
+        Some bioio backends (e.g. the bffile-based bioio-bioformats >=2 reader)
+        yield a lazy array-like from .compute() that exposes shape/dtype/ndim but
+        has no .flatten(). Such input must be coerced to NumPy via np.asarray().
+        """
+
+        class FakeLazyArray:
+            """Minimal LazyBioArray stand-in: no .flatten(), but __array__-able."""
+
+            def __init__(self, arr):
+                # type: (np.ndarray) -> None
+                self._arr = arr
+                self.ndim = arr.ndim
+                self.dtype = arr.dtype
+                self.shape = arr.shape
+
+            def __array__(self, dtype=None):
+                return self._arr if dtype is None else self._arr.astype(dtype)
+
+        plane = np.array([[256, 512], [768, 1024]], dtype=np.uint16)
+        lazy = FakeLazyArray(plane)
+
+        assert not hasattr(lazy, "flatten")
+        # Coerced result must match the materialized big-endian bytes.
+        assert plane_to_canonical_bytes(lazy) == plane_to_canonical_bytes(plane)
+        assert plane_to_canonical_bytes(lazy) == b"\x01\x00\x02\x00\x03\x00\x04\x00"
+
+    def test_non_2d_lazy_array_like_raises_before_materializing(self):
+        # type: () -> None
+        """Test that the ndim guard rejects non-2D lazy input without a read.
+
+        The guard runs before coercion and relies on the array-like exposing
+        .ndim, so non-2D input is rejected without triggering __array__.
+        """
+
+        class ExplodingLazyArray:
+            """Reports ndim but raises if anything tries to materialize it."""
+
+            def __init__(self, ndim):
+                # type: (int) -> None
+                self.ndim = ndim
+
+            def __array__(self, dtype=None):
+                raise AssertionError("must not materialize before ndim guard")
+
+        with pytest.raises(ValueError, match="Expected 2D plane"):
+            plane_to_canonical_bytes(ExplodingLazyArray(3))
+
 
 class TestTraversalOrder:
     """Test traversal order requirements per IMAGEWALK spec Section 4.3."""

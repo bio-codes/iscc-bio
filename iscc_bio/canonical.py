@@ -116,8 +116,11 @@ def plane_to_canonical_bytes(plane: np.ndarray) -> bytes:
     # Get the struct format character
     format_char = numpy_dtype_to_struct_format(plane.dtype)
 
-    # Flatten plane to 1D in C-order (row-major, Y then X)
-    flat = plane.flatten(order="C")
+    # Flatten plane to 1D in C-order (row-major, Y then X).
+    # Coerce to NumPy first: some bioio backends (e.g. the bffile-based
+    # bioio-bioformats >=2 reader) yield a lazy array-like from .compute()
+    # that lacks .flatten(); np.asarray() is a no-op on real ndarrays.
+    flat = np.asarray(plane).ravel(order="C")
 
     # Pack to bytes in big-endian format
     # > prefix means big-endian
