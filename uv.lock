@@ -1174,7 +1174,7 @@ nd2 = [
 ome-tiff = [
     { name = "bioio-ome-tiff" },
 ]
-ome-zarr-plugin = [
+ome-zarr = [
     { name = "bioio-ome-zarr" },
 ]
 readers = [
@@ -1227,7 +1227,7 @@ requires-dist = [
     { name = "bioio-nd2", marker = "extra == 'readers'", specifier = ">=1.5.0" },
     { name = "bioio-ome-tiff", marker = "extra == 'ome-tiff'", specifier = ">=1.4.0" },
     { name = "bioio-ome-tiff", marker = "extra == 'readers'", specifier = ">=1.4.0" },
-    { name = "bioio-ome-zarr", marker = "extra == 'ome-zarr-plugin'", specifier = ">=2.3.0" },
+    { name = "bioio-ome-zarr", marker = "extra == 'ome-zarr'", specifier = ">=2.3.0" },
     { name = "bioio-ome-zarr", marker = "extra == 'readers'", specifier = ">=2.3.0" },
     { name = "bioio-tiff-glob", marker = "extra == 'readers'", specifier = ">=1.2.0" },
     { name = "bioio-tiff-glob", marker = "extra == 'tiff-glob'", specifier = ">=1.2.0" },
@@ -1241,7 +1241,7 @@ requires-dist = [
     { name = "ome-zarr", specifier = ">=0.12.2" },
     { name = "pillow", specifier = ">=10.0.0" },
 ]
-provides-extras = ["bioformats", "czi", "ome-tiff", "ome-zarr-plugin", "dv", "imageio", "lif", "nd2", "tifffile", "tiff-glob", "readers", "all"]
+provides-extras = ["bioformats", "czi", "ome-tiff", "ome-zarr", "dv", "imageio", "lif", "nd2", "tifffile", "tiff-glob", "readers", "all"]
 
 [package.metadata.requires-dev]
 dev = [

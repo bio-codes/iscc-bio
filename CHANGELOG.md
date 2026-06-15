@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Update all dependencies to latest versions (including optional reader plugins and dev tooling)
+- Rename the `ome-zarr-plugin` extra to `ome-zarr` for naming consistency with other format extras
+    (**breaking**: install with `iscc-bio[ome-zarr]` instead of `iscc-bio[ome-zarr-plugin]`)
 
 ## [0.1.0] - 2025-05-12
 

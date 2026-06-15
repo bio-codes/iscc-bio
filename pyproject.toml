@@ -55,7 +55,7 @@ Issues = "https://github.com/bio-codes/iscc-bio/issues"
 bioformats = ["bioio-bioformats>=1.3.0"]
 czi = ["bioio-czi>=2.4.0"]
 ome-tiff = ["bioio-ome-tiff>=1.4.0"]
-ome-zarr-plugin = ["bioio-ome-zarr>=2.3.0"]
+ome-zarr = ["bioio-ome-zarr>=2.3.0"]
 dv = ["bioio-dv>=1.2.0"]
 imageio = ["bioio-imageio>=1.3.0"]
 lif = ["bioio-lif>=1.4.1"]

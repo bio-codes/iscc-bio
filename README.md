@@ -70,7 +70,8 @@ pip install -r requirements-omero.txt
 
 - **readers** / **all**: All BioIO reader plugins (BioFormats, CZI, OME-TIFF, OME-Zarr, ND2, LIF, etc.)
 - **bioformats**: BioFormats reader for broad format support
-- **czi**, **nd2**, **lif**, **ome-tiff**, **ome-zarr-plugin**, **dv**, **tifffile**: Individual format readers
+- **czi**, **nd2**, **lif**, **ome-tiff**, **ome-zarr**, **dv**, **imageio**, **tifffile**, **tiff-glob**:
+    Individual format readers
 
 ## Quick Start
 
