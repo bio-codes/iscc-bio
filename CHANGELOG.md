@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Support for Python 3.14 (tested in CI alongside 3.11–3.13)
+
 ### Changed
 
 - Update all dependencies to latest versions (including optional reader plugins and dev tooling)
