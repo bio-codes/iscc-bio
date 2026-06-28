@@ -88,11 +88,13 @@ def test_local_file_delegates_to_bioio(tmp_path):
 
     fresh_planes = [make_plane(z=z, value=z * 10) for z in range(3)]
     with patch("iscc_bio.imagewalk.iter_planes_bioio", return_value=iter(fresh_planes)):
-        results = biocode(str(dummy))
+        result = biocode(str(dummy))
 
-    assert len(results) == len(expected)
-    assert results[0]["iscc_code"] == expected[0]["iscc_code"]
-    assert results[0]["units"] == expected[0]["units"]
+    assert len(result["parts"]) == len(expected)
+    assert result["parts"][0]["iscc_code"] == expected[0]["iscc_code"]
+    assert result["parts"][0]["units"] == expected[0]["units"]
+    assert result["iscc_code"].startswith("ISCC:")  # raw-byte top over the file
+    assert result["generator"].startswith("iscc-bio - v")
 
 
 def test_local_file_with_simprints(tmp_path):
@@ -102,11 +104,12 @@ def test_local_file_with_simprints(tmp_path):
     planes = [make_plane(z=z, value=z * 10) for z in range(3)]
 
     with patch("iscc_bio.imagewalk.iter_planes_bioio", return_value=iter(planes)):
-        results = biocode(str(dummy), simprints=True)
+        result = biocode(str(dummy), simprints=True)
 
-    assert "simprints" in results[0]
-    assert "DATA_NONE_V0" in results[0]["simprints"]
-    assert len(results[0]["simprints"]["DATA_NONE_V0"]) == 3
+    part = result["parts"][0]
+    assert "simprints" in part
+    assert "DATA_NONE_V0" in part["simprints"]
+    assert len(part["simprints"]["DATA_NONE_V0"]) == 3
 
 
 def test_zarr_auto_detection_by_suffix(tmp_path):
@@ -118,10 +121,10 @@ def test_zarr_auto_detection_by_suffix(tmp_path):
     with patch(
         "iscc_bio.imagewalk.iter_planes_ngff", return_value=iter(planes)
     ) as mock:
-        results = biocode(str(zarr_dir))
+        result = biocode(str(zarr_dir))
 
     mock.assert_called_once_with(str(zarr_dir))
-    assert len(results) == 1
+    assert len(result["parts"]) == 1
 
 
 def test_zarr_auto_detection_by_zattrs(tmp_path):
@@ -134,10 +137,12 @@ def test_zarr_auto_detection_by_zattrs(tmp_path):
     with patch(
         "iscc_bio.imagewalk.iter_planes_ngff", return_value=iter(planes)
     ) as mock:
-        results = biocode(str(zarr_dir))
+        result = biocode(str(zarr_dir))
 
     mock.assert_called_once_with(str(zarr_dir))
-    assert len(results) == 1
+    assert len(result["parts"]) == 1
+    # top-level code is the tree SUM over the store (here: the .zattrs file)
+    assert result["iscc_code"].startswith("ISCC:")
 
 
 def test_explicit_source_type_bioio(tmp_path):
@@ -175,9 +180,9 @@ def test_pathlike_source(tmp_path):
     planes = [make_plane(value=42)]
 
     with patch("iscc_bio.imagewalk.iter_planes_bioio", return_value=iter(planes)):
-        results = biocode(dummy)
+        result = biocode(dummy)
 
-    assert len(results) == 1
+    assert len(result["parts"]) == 1
 
 
 def test_multi_scene_results(tmp_path):
@@ -191,27 +196,63 @@ def test_multi_scene_results(tmp_path):
     ]
 
     with patch("iscc_bio.imagewalk.iter_planes_bioio", return_value=iter(planes)):
-        results = biocode(str(dummy))
+        result = biocode(str(dummy))
 
-    assert len(results) == 2
-    assert results[0]["iscc_code"] != results[1]["iscc_code"]
+    assert len(result["parts"]) == 2
+    assert result["parts"][0]["iscc_code"] != result["parts"][1]["iscc_code"]
 
 
 def test_result_schema(tmp_path):
-    """Results conform to IsccEntry schema."""
+    """Container exposes a raw-byte top plus IsccEntry-schema parts."""
     dummy = tmp_path / "test.tif"
     dummy.write_bytes(b"dummy")
     planes = [make_plane(value=42)]
 
     with patch("iscc_bio.imagewalk.iter_planes_bioio", return_value=iter(planes)):
-        results = biocode(str(dummy))
+        result = biocode(str(dummy))
 
-    entry = results[0]
-    assert isinstance(entry, dict)
+    assert isinstance(result, dict)
+    assert result["iscc_code"].startswith("ISCC:")
+    assert isinstance(result["units"], list) and len(result["units"]) == 2
+    assert result["generator"].startswith("iscc-bio - v")
+    assert isinstance(result["parts"], list)
+
+    entry = result["parts"][0]
     assert entry["iscc_code"].startswith("ISCC:")
     assert isinstance(entry["units"], list)
     assert len(entry["units"]) == 2
     assert all(u.startswith("ISCC:") for u in entry["units"])
+
+
+def test_top_level_is_raw_byte_sum_of_source(tmp_path):
+    """Top-level iscc_code is the raw-byte SUM of the source, independent of pixels."""
+    from iscc_bio.rawsum import raw_sum
+
+    dummy = tmp_path / "test.tif"
+    dummy.write_bytes(b"some original file bytes")
+    planes = [make_plane(value=42)]
+
+    with patch("iscc_bio.imagewalk.iter_planes_bioio", return_value=iter(planes)):
+        result = biocode(str(dummy))
+
+    assert result["iscc_code"] == raw_sum(dummy)["iscc_code"]
+
+
+def test_decode_failure_still_returns_top_level(tmp_path):
+    """Pixel decode failure still yields the raw-byte top-level code (degraded)."""
+    dummy = tmp_path / "broken.tif"
+    dummy.write_bytes(b"not a real image")
+
+    def broken_planes(*args, **kwargs):
+        raise RuntimeError("cannot decode")
+        yield  # pragma: no cover - makes this a generator function
+
+    with patch("iscc_bio.imagewalk.iter_planes_bioio", side_effect=broken_planes):
+        result = biocode(str(dummy))
+
+    assert result["iscc_code"].startswith("ISCC:")  # raw-byte top survived
+    assert result["parts"] == []
+    assert result["generator"].startswith("iscc-bio - v")
 
 
 def test_deterministic_results(tmp_path):

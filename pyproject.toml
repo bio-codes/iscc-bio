@@ -34,7 +34,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "iscc-lib",
+    "iscc-lib>=0.5.0",
+    "pathspec>=0.12.1",
     "pillow>=10.0.0",
     "numpy>=1.24.0",
     "click>=8.0.0",
@@ -123,6 +124,12 @@ typing-modules = ["typing"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+filterwarnings = [
+    # TREEWALK deliberately uses pathspec's GitWildMatchPattern to stay byte-conformant
+    # with the upstream iscc-sum reference; the newer 'gitignore' factory could change
+    # filtering semantics. Silence the cosmetic deprecation notice from pathspec >=1.0.
+    "ignore:GitWildMatchPattern .*is deprecated:DeprecationWarning",
+]
 
 [tool.poe.tasks]
 # Documentation tasks

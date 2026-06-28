@@ -1137,6 +1137,7 @@ dependencies = [
     { name = "numpy" },
     { name = "ome-zarr", version = "0.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version <= '3.11'" },
     { name = "ome-zarr", version = "0.17.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version > '3.11'" },
+    { name = "pathspec" },
     { name = "pillow" },
 ]
 
@@ -1235,10 +1236,11 @@ requires-dist = [
     { name = "bioio-tifffile", marker = "extra == 'tifffile'", specifier = ">=1.3.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "iscc-bio", extras = ["readers"], marker = "extra == 'all'" },
-    { name = "iscc-lib" },
+    { name = "iscc-lib", specifier = ">=0.5.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "ome-zarr", specifier = ">=0.12.2" },
+    { name = "pathspec", specifier = ">=0.12.1" },
     { name = "pillow", specifier = ">=10.0.0" },
 ]
 provides-extras = ["bioformats", "czi", "ome-tiff", "ome-zarr", "dv", "imageio", "lif", "nd2", "tifffile", "tiff-glob", "readers", "all"]
@@ -1259,13 +1261,13 @@ dev = [
 
 [[package]]
 name = "iscc-lib"
-version = "0.4.0"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cf/b8/69cc4e06b38d1ed8b8753c6c7e20124ccb4c8b70fc08e96fa2225f6ab3d1/iscc_lib-0.4.0.tar.gz", hash = "sha256:7c65d54339aef3904de11c4023d9f60fe3765e51781dc9ef8a0657d5b1b03a5c", size = 105241, upload-time = "2026-03-24T11:20:48.521Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/72/e815e72deca85daaedd7a4a74464818e3204af9fe9ed2cf703ce0dfd27a9/iscc_lib-0.5.0.tar.gz", hash = "sha256:a9a0376f3cb715f3b21cf7cd4779c7e41e30959350bd458101b61c2a7003d52b", size = 110214, upload-time = "2026-06-18T19:07:40.226Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/b3/3522f39585db7af7e234ca221a186966ddebb2c5dc4c7ccd8f88d86e4be4/iscc_lib-0.4.0-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:1590fc83beaa414fb8569cdefbf796e04e0a3fc0a4b973db16d9355b91c5eeee", size = 988216, upload-time = "2026-03-24T11:20:44.404Z" },
-    { url = "https://files.pythonhosted.org/packages/66/ac/3717ca194f12f3f3e2d210eff7678b79779c840034cf84732a11e16479f6/iscc_lib-0.4.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:480acd96408343e9a379ddfde0cf197ef4cf8ea42ad737e585a78924b6f2ee6e", size = 539552, upload-time = "2026-03-24T11:20:45.836Z" },
-    { url = "https://files.pythonhosted.org/packages/c8/c8/604e8a6470a6ed14d96b9fd54c67b8f37886d72d7da11eccc9aca97f7e97/iscc_lib-0.4.0-cp310-abi3-win_amd64.whl", hash = "sha256:e9968a62803e0bbd365a17ba0a870871ae4b849747d475123cff094231fe43b5", size = 437549, upload-time = "2026-03-24T11:20:47.24Z" },
+    { url = "https://files.pythonhosted.org/packages/87/90/aeb1eae164f156c47cd30765ba0d6273559da7acc3d0269edeebfdd69692/iscc_lib-0.5.0-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:9bf6dd3b3236714df427d786c5eca2ab221105e017091c4a26b0cf5515e673d0", size = 972579, upload-time = "2026-06-18T19:07:35.861Z" },
+    { url = "https://files.pythonhosted.org/packages/79/37/7b4db3c0575f7ffd0a3e47d508b5d322bc4951995eca1711f9c34f81beef/iscc_lib-0.5.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5da17d975a7fa638269b605c6001345e07cc4718b79540ca6cefd43b7a6af360", size = 530373, upload-time = "2026-06-18T19:07:37.445Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/7c/26eb1f95ac52b707419e4399860ee0b6d76b50afa5b666a140c18e8321ad/iscc_lib-0.5.0-cp310-abi3-win_amd64.whl", hash = "sha256:444caff1c7654e11df43d2ceaea5dd45bdacc3a71a61412f4890fae80d86bcba", size = 430283, upload-time = "2026-06-18T19:07:39.006Z" },
 ]
 
 [[package]]
