@@ -121,7 +121,8 @@ iscc-bio views myimage.nd2 --output-dir ./views/
 ## IMAGEWALK Specification
 
 **IMAGEWALK** is a deterministic algorithm for traversing multi-dimensional bioimage data to produce
-format-agnostic, reproducible hash digests.
+format-agnostic, reproducible hash digests. The canonical specification is maintained as ISCC Enhancement
+Proposal [IEP-0018](https://ieps.iscc.codes/iep-0018/).
 
 ### Core Principles
 
@@ -159,7 +160,7 @@ Plane 6:  z=0, c=2, t=1    Plane 12: z=1, c=2, t=1
 - **`iw_blitz.py`**: OMERO Blitz implementation for remote servers
 
 All implementations produce identical hashes for identical pixel data, conforming to the
-[IMAGEWALK specification](https://github.com/bio-codes/iscc-bio/blob/main/docs/imagewalk.md).
+[IMAGEWALK specification (IEP-0018)](https://ieps.iscc.codes/iep-0018/).
 
 ## Command-Line Interface
 
