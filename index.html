@@ -590,6 +590,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#high-level-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Entry Point
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#imagewalk-plane-iteration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1111,6 +1122,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#high-level-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Entry Point
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#imagewalk-plane-iteration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1302,13 +1324,13 @@
 
 
 <h1 id="iscc-bio-iscc-processing-for-bioimage-data">iscc-bio - ISCC Processing for Bioimage Data<a class="headerlink" href="#iscc-bio-iscc-processing-for-bioimage-data" title="Permanent link">#</a></h1>
-<p><a href="https://github.com/bio-codes/iscc-bio"><img alt="Version" src="https://img.shields.io/badge/version-0.1.0-blue.svg"></a>
+<p><a href="https://github.com/bio-codes/iscc-bio"><img alt="Version" src="https://img.shields.io/badge/version-0.2.0-blue.svg"></a>
 <a href="https://github.com/bio-codes/iscc-bio/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a></p>
 <p><strong>ISCC Processing for Multi-Dimensional Bioimage Data</strong></p>
 <p>Generate <a href="https://www.iso.org/standard/77899.html">ISO 24138:2024</a> International Standard Content Codes (ISCC)
 for bioimage data across multiple formats using deterministic <strong>IMAGEWALK</strong> plane traversal.</p>
 <h2 id="project-status">Project Status<a class="headerlink" href="#project-status" title="Permanent link">#</a></h2>
-<p><strong>Version 0.1.0</strong></p>
+<p><strong>Version 0.2.0</strong></p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This package is a proof of concept, and breaking changes may be released at any time.</p>
@@ -1354,7 +1376,8 @@ This produces consistent, reproducible content identifiers regardless of source 
 <ul>
 <li><strong>readers</strong> / <strong>all</strong>: All BioIO reader plugins (BioFormats, CZI, OME-TIFF, OME-Zarr, ND2, LIF, etc.)</li>
 <li><strong>bioformats</strong>: BioFormats reader for broad format support</li>
-<li><strong>czi</strong>, <strong>nd2</strong>, <strong>lif</strong>, <strong>ome-tiff</strong>, <strong>ome-zarr-plugin</strong>, <strong>dv</strong>, <strong>tifffile</strong>: Individual format readers</li>
+<li><strong>czi</strong>, <strong>nd2</strong>, <strong>lif</strong>, <strong>ome-tiff</strong>, <strong>ome-zarr</strong>, <strong>dv</strong>, <strong>imageio</strong>, <strong>tifffile</strong>, <strong>tiff-glob</strong>:
+    Individual format readers</li>
 </ul>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">#</a></h2>
 <h3 id="cli-commands">CLI Commands<a class="headerlink" href="#cli-commands" title="Permanent link">#</a></h3>
@@ -1392,7 +1415,8 @@ This produces consistent, reproducible content identifiers regardless of source 
 </span></code></pre></div>
 <h2 id="imagewalk-specification">IMAGEWALK Specification<a class="headerlink" href="#imagewalk-specification" title="Permanent link">#</a></h2>
 <p><strong>IMAGEWALK</strong> is a deterministic algorithm for traversing multi-dimensional bioimage data to produce
-format-agnostic, reproducible hash digests.</p>
+format-agnostic, reproducible hash digests. The canonical specification is maintained as ISCC Enhancement
+Proposal <a href="https://ieps.iscc.codes/iep-0018/">IEP-0018</a>.</p>
 <h3 id="core-principles">Core Principles<a class="headerlink" href="#core-principles" title="Permanent link">#</a></h3>
 <ol>
 <li>
@@ -1431,7 +1455,7 @@ format-agnostic, reproducible hash digests.</p>
 <li><strong><code>iw_blitz.py</code></strong>: OMERO Blitz implementation for remote servers</li>
 </ul>
 <p>All implementations produce identical hashes for identical pixel data, conforming to the
-<a href="https://github.com/bio-codes/iscc-bio/blob/main/docs/imagewalk.md">IMAGEWALK specification</a>.</p>
+<a href="https://ieps.iscc.codes/iep-0018/">IMAGEWALK specification (IEP-0018)</a>.</p>
 <h2 id="command-line-interface">Command-Line Interface<a class="headerlink" href="#command-line-interface" title="Permanent link">#</a></h2>
 <h3 id="biocode-generate-biocode-iscc-sum"><code>biocode</code> - Generate Biocode (ISCC-SUM)<a class="headerlink" href="#biocode-generate-biocode-iscc-sum" title="Permanent link">#</a></h3>
 <p>Generate biocode (ISCC-SUM) for bioimage scenes:</p>
@@ -1472,50 +1496,66 @@ format-agnostic, reproducible hash digests.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>iscc-bio<span class="w"> </span>thumb<span class="w"> </span>INPUT
 </span></code></pre></div>
 <h2 id="python-api">Python API<a class="headerlink" href="#python-api" title="Permanent link">#</a></h2>
-<h3 id="imagewalk-plane-iteration">IMAGEWALK Plane Iteration<a class="headerlink" href="#imagewalk-plane-iteration" title="Permanent link">#</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagewalk</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_planes_bioio</span><span class="p">,</span> <span class="n">iter_planes_ngff</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagewalk</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_planes_blitz_image</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Iterate over planes using BioIO</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">iter_planes_bioio</span><span class="p">(</span><span class="s2">"image.czi"</span><span class="p">):</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Scene </span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">scene_idx</span><span class="si">}</span><span class="s2">, Z=</span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">z_depth</span><span class="si">}</span><span class="s2">, "</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>          <span class="sa">f</span><span class="s2">"C=</span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">c_channel</span><span class="si">}</span><span class="s2">, T=</span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">t_time</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Shape: </span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">xy_array</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, dtype: </span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">xy_array</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<h3 id="high-level-entry-point">High-Level Entry Point<a class="headerlink" href="#high-level-entry-point" title="Permanent link">#</a></h3>
+<p>The <code>biocode()</code> function handles all supported sources (local files, OME-NGFF/Zarr, OMERO) and returns a single
+container dict: a top-level raw-byte ISCC-SUM over the original source with the per-scene IMAGEWALK content
+codes nested as <code>parts</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">biocode</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">biocode</span><span class="p">(</span><span class="s2">"image.ome.tiff"</span><span class="p">)</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"iscc_code"</span><span class="p">])</span>             <span class="c1"># top-level raw-byte ISCC-SUM</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"parts"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"iscc_code"</span><span class="p">])</span>  <span class="c1"># per-scene IMAGEWALK content code</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="c1"># OME-NGFF/Zarr store (top-level code is the tree SUM over the store)</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">biocode</span><span class="p">(</span><span class="s2">"dataset.zarr"</span><span class="p">)</span>
 </span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1"># Iterate over OME-Zarr planes</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">iter_planes_ngff</span><span class="p">(</span><span class="s2">"data.zarr"</span><span class="p">):</span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="c1"># Process plane.xy_array (2D numpy array)</span>
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="k">pass</span>
-</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
-</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="c1"># Iterate over OMERO planes</span>
-</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="kn">from</span><span class="w"> </span><span class="nn">omero.gateway</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlitzGateway</span>
-</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="n">conn</span> <span class="o">=</span> <span class="n">BlitzGateway</span><span class="p">(</span><span class="s2">"user"</span><span class="p">,</span> <span class="s2">"pass"</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">"omero.server.com"</span><span class="p">)</span>
-</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="n">conn</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
-</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="n">image</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">getObject</span><span class="p">(</span><span class="s2">"Image"</span><span class="p">,</span> <span class="mi">123</span><span class="p">)</span>
-</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>
-</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">iter_planes_blitz_image</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
-</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>    <span class="c1"># Process plane.xy_array</span>
-</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>    <span class="k">pass</span>
-</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1"># OMERO server (top-level iscc_code is None; parts carry per-scene codes)</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="n">result</span> <span class="o">=</span> <span class="n">biocode</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s2">"omero.server.com"</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">"pass"</span><span class="p">,</span> <span class="n">iid</span><span class="o">=</span><span class="mi">123</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="imagewalk-plane-iteration">IMAGEWALK Plane Iteration<a class="headerlink" href="#imagewalk-plane-iteration" title="Permanent link">#</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagewalk</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_planes_bioio</span><span class="p">,</span> <span class="n">iter_planes_ngff</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagewalk</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_planes_blitz_image</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Iterate over planes using BioIO</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">iter_planes_bioio</span><span class="p">(</span><span class="s2">"image.czi"</span><span class="p">):</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Scene </span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">scene_idx</span><span class="si">}</span><span class="s2">, Z=</span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">z_depth</span><span class="si">}</span><span class="s2">, "</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>          <span class="sa">f</span><span class="s2">"C=</span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">c_channel</span><span class="si">}</span><span class="s2">, T=</span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">t_time</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Shape: </span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">xy_array</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, dtype: </span><span class="si">{</span><span class="n">plane</span><span class="o">.</span><span class="n">xy_array</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="c1"># Iterate over OME-Zarr planes</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">iter_planes_ngff</span><span class="p">(</span><span class="s2">"data.zarr"</span><span class="p">):</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>    <span class="c1"># Process plane.xy_array (2D numpy array)</span>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>    <span class="k">pass</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="c1"># Iterate over OMERO planes</span>
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="kn">from</span><span class="w"> </span><span class="nn">omero.gateway</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlitzGateway</span>
+</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="n">conn</span> <span class="o">=</span> <span class="n">BlitzGateway</span><span class="p">(</span><span class="s2">"user"</span><span class="p">,</span> <span class="s2">"pass"</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">"omero.server.com"</span><span class="p">)</span>
+</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="n">conn</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+</span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="n">image</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">getObject</span><span class="p">(</span><span class="s2">"Image"</span><span class="p">,</span> <span class="mi">123</span><span class="p">)</span>
+</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>
+</span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">iter_planes_blitz_image</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
+</span><span id="__span-13-22"><a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>    <span class="c1"># Process plane.xy_array</span>
+</span><span id="__span-13-23"><a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>    <span class="k">pass</span>
+</span><span id="__span-13-24"><a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="generate-biocode-iscc-sum_1">Generate Biocode (ISCC-SUM)<a class="headerlink" href="#generate-biocode-iscc-sum_1" title="Permanent link">#</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.biocode</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_biocode</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagewalk</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_planes_bioio</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Generate biocode for all scenes</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">planes</span> <span class="o">=</span> <span class="n">iter_planes_bioio</span><span class="p">(</span><span class="s2">"image.lif"</span><span class="p">)</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">results</span> <span class="o">=</span> <span class="n">generate_biocode</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"iscc_code"</span><span class="p">])</span>  <span class="c1"># ISCC-SUM for first scene</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.biocode</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_biocode</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagewalk</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_planes_bioio</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Generate biocode for all scenes</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="n">planes</span> <span class="o">=</span> <span class="n">iter_planes_bioio</span><span class="p">(</span><span class="s2">"image.lif"</span><span class="p">)</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">results</span> <span class="o">=</span> <span class="n">generate_biocode</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"iscc_code"</span><span class="p">])</span>  <span class="c1"># ISCC-SUM for first scene</span>
 </span></code></pre></div>
 <h3 id="generate-imagecode-experimental_1">Generate Imagecode (Experimental)<a class="headerlink" href="#generate-imagecode-experimental_1" title="Permanent link">#</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagecode</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_imagecode</span><span class="p">,</span> <span class="n">format_output</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1"># Generate comprehensive fingerprints (ISCC-SUM + ISCC-IMAGE + ISCC-MIXED)</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">fingerprints</span> <span class="o">=</span> <span class="n">generate_imagecode</span><span class="p">(</span><span class="s2">"image.nd2"</span><span class="p">,</span> <span class="n">max_views</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1"># Format output</span>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">output</span> <span class="o">=</span> <span class="n">format_output</span><span class="p">(</span><span class="n">fingerprints</span><span class="p">,</span> <span class="s2">"image.nd2"</span><span class="p">)</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">iscc_bio.imagecode</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_imagecode</span><span class="p">,</span> <span class="n">format_output</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># Generate comprehensive fingerprints (ISCC-SUM + ISCC-IMAGE + ISCC-MIXED)</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">fingerprints</span> <span class="o">=</span> <span class="n">generate_imagecode</span><span class="p">(</span><span class="s2">"image.nd2"</span><span class="p">,</span> <span class="n">max_views</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="c1"># Format output</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="n">output</span> <span class="o">=</span> <span class="n">format_output</span><span class="p">(</span><span class="n">fingerprints</span><span class="p">,</span> <span class="s2">"image.nd2"</span><span class="p">)</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="supported-formats">Supported Formats<a class="headerlink" href="#supported-formats" title="Permanent link">#</a></h2>
 <p>Via BioIO plugin ecosystem:</p>
@@ -1531,32 +1571,32 @@ format-agnostic, reproducible hash digests.</p>
 </ul>
 <h2 id="development">Development<a class="headerlink" href="#development" title="Permanent link">#</a></h2>
 <h3 id="setup-development-environment">Setup Development Environment<a class="headerlink" href="#setup-development-environment" title="Permanent link">#</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Clone repository</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/bio-codes/iscc-bio.git
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="nb">cd</span><span class="w"> </span>iscc-bio
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="c1"># Install with all dependencies</span>
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>all
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="c1"># Run CLI during development</span>
-</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>uv<span class="w"> </span>run<span class="w"> </span>iscc-bio<span class="w"> </span>--help
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Clone repository</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/bio-codes/iscc-bio.git
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="nb">cd</span><span class="w"> </span>iscc-bio
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="c1"># Install with all dependencies</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>all
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="c1"># Run CLI during development</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>uv<span class="w"> </span>run<span class="w"> </span>iscc-bio<span class="w"> </span>--help
 </span></code></pre></div>
 <h3 id="development-commands">Development Commands<a class="headerlink" href="#development-commands" title="Permanent link">#</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Run tests</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Run tests</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
 </span></code></pre></div>
 <p>This project uses <a href="https://github.com/nat-n/poethepoet">poethepoet</a> for task automation:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Format markdown files</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>format-md
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1"># Format code files</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>format-code
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="c1"># Build documentation</span>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>docs-build
-</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
-</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="c1"># Run all formatting and docs</span>
-</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>all
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Format markdown files</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>format-md
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Format code files</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>format-code
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="c1"># Build documentation</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>docs-build
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="c1"># Run all formatting and docs</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>uv<span class="w"> </span>run<span class="w"> </span>poe<span class="w"> </span>all
 </span></code></pre></div>
 <h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">#</a></h2>
 <h3 id="core-modules">Core Modules<a class="headerlink" href="#core-modules" title="Permanent link">#</a></h3>
@@ -1603,14 +1643,14 @@ project (Enhancing AI-Readiness of Bioimaging Data with Content-Based Identifier
 <p>Apache License 2.0 - See <a href="LICENSE">LICENSE</a> file for details.</p>
 <h2 id="citation">Citation<a class="headerlink" href="#citation" title="Permanent link">#</a></h2>
 <p>If you use iscc-bio in your research, please cite:</p>
-<div class="language-bibtex highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nc">@software</span><span class="p">{</span><span class="nl">iscc_bio</span><span class="p">,</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="na">title</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="s">{bio-codes/iscc-bio: ISCC Processing for Bioimage Data}</span><span class="p">,</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">  </span><span class="na">author</span><span class="w">       </span><span class="p">=</span><span class="w"> </span><span class="s">{Pan, Titusz}</span><span class="p">,</span>
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">  </span><span class="na">year</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="m">2025</span><span class="p">,</span>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">  </span><span class="na">url</span><span class="w">          </span><span class="p">=</span><span class="w"> </span><span class="s">{https://github.com/bio-codes/iscc-bio}</span><span class="p">,</span>
-</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">  </span><span class="na">note</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="s">{Supported by OSCARS (Open Science Clusters' Action for Research and Society) under European Commission grant agreement Nº101129751}</span><span class="p">,</span>
-</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">  </span><span class="na">version</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="s">{0.1.0}</span>
-</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="p">}</span>
+<div class="language-bibtex highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nc">@software</span><span class="p">{</span><span class="nl">iscc_bio</span><span class="p">,</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="na">title</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="s">{bio-codes/iscc-bio: ISCC Processing for Bioimage Data}</span><span class="p">,</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span><span class="na">author</span><span class="w">       </span><span class="p">=</span><span class="w"> </span><span class="s">{Pan, Titusz}</span><span class="p">,</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span><span class="na">year</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="m">2025</span><span class="p">,</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">  </span><span class="na">url</span><span class="w">          </span><span class="p">=</span><span class="w"> </span><span class="s">{https://github.com/bio-codes/iscc-bio}</span><span class="p">,</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="na">note</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="s">{Supported by OSCARS (Open Science Clusters' Action for Research and Society) under European Commission grant agreement Nº101129751}</span><span class="p">,</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">  </span><span class="na">version</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="s">{0.1.0}</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="p">}</span>
 </span></code></pre></div>
 <h2 id="related-projects">Related Projects<a class="headerlink" href="#related-projects" title="Permanent link">#</a></h2>
 <ul>

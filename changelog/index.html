@@ -382,6 +382,45 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#020-2026-08-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.2.0] - 2026-08-24
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.2.0] - 2026-08-24">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#010-2025-05-12" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -427,6 +466,45 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
+  <a href="#020-2026-08-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.2.0] - 2026-08-24
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.2.0] - 2026-08-24">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#010-2025-05-12" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -461,6 +539,33 @@
 <p>All notable changes to this project will be documented in this file.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>, and this project adheres to
 <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<h2 id="020-2026-08-24">[0.2.0] - 2026-08-24<a class="headerlink" href="#020-2026-08-24" title="Permanent link">#</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">#</a></h3>
+<ul>
+<li>Top-level raw-byte ISCC-SUM for <code>biocode()</code> over the original source — a single file or a directory tree (e.g.
+    an OME-Zarr store, traversed in TREEWALK-ISCC order) — with the per-scene IMAGEWALK codes nested as <code>parts</code>.
+    The top-level code is decode-independent (still produced if pixel reading fails) and, for a single file,
+    identical to the standard <code>iscc-sum</code> tool (<code>iscc_bio/rawsum.py</code>)</li>
+<li><code>iscc_bio/treewalk.py</code> — deterministic, cross-platform directory tree traversal (TREEWALK-BASE/IGNORE/ISCC)
+    ported from <code>bio-codes/iscc-sum</code>, for reproducible raw-byte tree ISCC-SUMs over multi-file bioimages</li>
+<li>Support for Python 3.14 (tested in CI alongside 3.11–3.13)</li>
+<li><code>scripts/acquire_testdata.py</code> — reproducible acquisition of a pinned public bioimage test corpus (OME-TIFF,
+    TIFF, CZI, ND2, OIR, LIF); every sample pins URL, size, and SHA-256 digest</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">#</a></h3>
+<ul>
+<li><strong>Breaking</strong>: <code>iscc_bio.api.biocode()</code> now returns a single container dict (<code>iscc_code</code>, <code>units</code>, <code>datahash</code>,
+    <code>filesize</code>, <code>generator</code>, <code>parts</code>) instead of a list of per-scene entries; the former per-scene list is now
+    <code>result["parts"]</code></li>
+<li>Require <code>iscc-lib&gt;=0.5.0</code>, which releases the GIL during Data/Instance hashing, enabling thread-level
+    parallelism for hashing-heavy workloads</li>
+<li>Update all dependencies to latest versions (including optional reader plugins and dev tooling)</li>
+<li>Rename the <code>ome-zarr-plugin</code> extra to <code>ome-zarr</code> for naming consistency with other format extras
+    (<strong>breaking</strong>: install with <code>iscc-bio[ome-zarr]</code> instead of <code>iscc-bio[ome-zarr-plugin]</code>)</li>
+<li>The IMAGEWALK specification is now maintained as ISCC Enhancement Proposal
+    <a href="https://ieps.iscc.codes/iep-0018/">IEP-0018</a>; <code>docs/imagewalk.md</code> is a non-normative overview pointing to
+    the canonical version</li>
+</ul>
 <h2 id="010-2025-05-12">[0.1.0] - 2025-05-12<a class="headerlink" href="#010-2025-05-12" title="Permanent link">#</a></h2>
 <ul>
 <li>Initial release</li>
