@@ -15,6 +15,9 @@ wheels/
 # Docs
 site/
 
+# Acquired test data samples (see scripts/acquire_testdata.py)
+testdata/
+
 # AI
 .mcp.json
 CLAUDE.local.md
