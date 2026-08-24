@@ -50,4 +50,4 @@ def _silence_bioformats_logging():
 # Don't initialize JVM at import time - let bioformats do it lazily
 # _silence_bioformats_logging()
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

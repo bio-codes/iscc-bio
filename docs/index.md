@@ -1,6 +1,6 @@
 # iscc-bio - ISCC Processing for Bioimage Data
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bio-codes/iscc-bio)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/bio-codes/iscc-bio)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/bio-codes/iscc-bio/blob/main/LICENSE)
 
 **ISCC Processing for Multi-Dimensional Bioimage Data**
@@ -10,7 +10,7 @@ for bioimage data across multiple formats using deterministic **IMAGEWALK** plan
 
 ## Project Status
 
-**Version 0.1.0**
+**Version 0.2.0**
 
 !!! warning
 
@@ -224,6 +224,26 @@ iscc-bio thumb INPUT
 ```
 
 ## Python API
+
+### High-Level Entry Point
+
+The `biocode()` function handles all supported sources (local files, OME-NGFF/Zarr, OMERO) and returns a single
+container dict: a top-level raw-byte ISCC-SUM over the original source with the per-scene IMAGEWALK content
+codes nested as `parts`:
+
+```python
+from iscc_bio.api import biocode
+
+result = biocode("image.ome.tiff")
+print(result["iscc_code"])             # top-level raw-byte ISCC-SUM
+print(result["parts"][0]["iscc_code"])  # per-scene IMAGEWALK content code
+
+# OME-NGFF/Zarr store (top-level code is the tree SUM over the store)
+result = biocode("dataset.zarr")
+
+# OMERO server (top-level iscc_code is None; parts carry per-scene codes)
+result = biocode(host="omero.server.com", username="user", password="pass", iid=123)
+```
 
 ### IMAGEWALK Plane Iteration
 

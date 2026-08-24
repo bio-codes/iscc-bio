@@ -1,6 +1,6 @@
 [project]
 name = "iscc-bio"
-version = "0.1.0"
+version = "0.2.0"
 description = "BioCodes - ISCC Processing for BioImaging Data"
 authors = [{ name = "Titusz", email = "tp@iscc.io" }]
 readme = "README.md"
